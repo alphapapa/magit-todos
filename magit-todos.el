@@ -267,15 +267,15 @@ is killed."
                                        (progn
                                          (setq kill-buffer t)
                                          (find-file-noselect file nil 'raw)))))
-      (setq filename (f-relative (buffer-file-name)
-                                 base-directory))
+      (setq filename (f-relative (buffer-file-name) base-directory))
       (when (and magit-todos-fontify-org
                  (string= "org" (f-ext (buffer-file-name))))
         (setq string-fn (lambda ()
-                          (org-fontify-like-in-org-mode (format "%s %s %s"
-                                                                (match-string 1)
-                                                                (match-string 2)
-                                                                (match-string 3))))))
+                          (org-fontify-like-in-org-mode
+                           (format "%s %s %s"
+                                   (match-string 1)
+                                   (match-string 2)
+                                   (match-string 3))))))
       (prog1 (save-excursion
                (save-restriction
                  (widen)
