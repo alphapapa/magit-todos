@@ -8,7 +8,13 @@
 
 This package displays keyword entries from source code comments and Org files in the Magit status buffer.  Activating an item jumps to it in its file.  By default, it uses keywords from [[https://github.com/tarsius/hl-todo][hl-todo]], minus a few (like =NOTE=).
 
-[[screenshot.png]]
+** Screenshots
+
+[[screenshots/matrix.png]]
+
+Org headings can optionally be fontified as such:
+
+[[screenshots/org.png]]
 
 ** Installation
 
