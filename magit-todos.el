@@ -110,8 +110,8 @@ regular expression."
                            (list value))))
            (setq keywords (seq-difference keywords magit-todos-ignored-keywords)
                  magit-todos-keywords-list keywords
-                 magit-todos-keywords-regexp (rx-to-string `(seq (or (seq bol (1+ "*")) ; Org files
-                                                                     (1+ (syntax comment-start)))
+                 magit-todos-keywords-regexp (rx-to-string `(seq (group (or (seq bol (1+ "*")) ; Org files
+                                                                            (1+ (syntax comment-start))))
                                                                  (1+ blank)
                                                                  (group (or ,@keywords))
                                                                  (optional ":")
@@ -162,6 +162,10 @@ repos."
 If nil, a keyword like \"Todo:\" will not be shown.  `upcase' can
 be a relatively expensive function, so this can be disabled if
 necessary."
+  :type 'boolean)
+
+(defcustom magit-todos-fontify-org t
+  "Fontify items from Org files as Org headings."
   :type 'boolean)
 
 ;;;; Variables
@@ -244,14 +248,25 @@ PATH defaults to `default-directory'."
   "Return to-do items for FILE.
 If FILE is not being visited, it is visited and then its buffer
 is killed."
-  (let ((kill-buffer)
-        (case-fold-search magit-todos-ignore-case))
+  (let ((case-fold-search magit-todos-ignore-case)
+        (string-fn (lambda ()
+                     (format "%s: %s" (propertize (match-string 2)
+                                                  'face (magit-todos--keyword-face (match-string 2)))
+                             (match-string 3))))
+        kill-buffer)
     (with-current-buffer (cl-typecase file
                            (buffer file)
                            (string (or (find-buffer-visiting file)
                                        (progn
                                          (setq kill-buffer t)
                                          (find-file-noselect file nil 'raw)))))
+      (when (and magit-todos-fontify-org
+                 (string= "org" (f-ext (buffer-file-name))))
+        (setq string-fn (lambda ()
+                          (org-fontify-like-in-org-mode (format "%s %s %s"
+                                                                (match-string 1)
+                                                                (match-string 2)
+                                                                (match-string 3))))))
       (prog1 (save-excursion
                (save-restriction
                  (widen)
@@ -259,8 +274,7 @@ is killed."
                  (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
                           collect (a-list :file (buffer-file-name)
                                           :position (match-beginning 0)
-                                          :keyword (match-string 1)
-                                          :string (concat (match-string 2))))))
+                                          :string (funcall string-fn)))))
         (when kill-buffer
           (kill-buffer))))))
 
@@ -271,11 +285,9 @@ is killed."
     (magit-insert-section (todos)
       (magit-insert-heading "TODOs:")
       (dolist (item items)
-        (-let* (((&alist :file file :position position :keyword keyword :string string) item)
+        (-let* (((&alist :file file :position position :string string) item)
                 (filename (propertize (f-filename file) 'face 'magit-filename))
-                (face (magit-todos--keyword-face keyword))
-                (keyword (propertize keyword 'face face))
-                (string (format "%s %s: %s" filename keyword string)))
+                (string (format "%s %s" filename string)))
           (magit-insert-section (todo item)
             (insert string)))
         (insert "\n"))
