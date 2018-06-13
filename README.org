@@ -1,0 +1,51 @@
+#+BEGIN_HTML
+<a href=https://alphapapa.github.io/dont-tread-on-emacs/><img src="dont-tread-on-emacs-150.png" align="right"></a>
+#+END_HTML
+
+* magit-todos
+
+  [[https://melpa.org/#/magit-todos][file:https://melpa.org/packages/magit-todos-badge.svg]] [[https://stable.melpa.org/#/magit-todos][file:https://stable.melpa.org/packages/magit-todos-badge.svg]]
+
+This package displays keyword entries from source code comments and Org files in the Magit status buffer.  Activating an item jumps to it in its file.  By default, it uses keywords from [[https://github.com/tarsius/hl-todo][hl-todo]], minus a few (like =NOTE=).
+
+[[screenshot.png]]
+
+** Installation
+
+If you installed from MELPA, you're done!
+
+*** Manual
+
+Install these required packages:
+
+-  =a=
+-  =anaphora=
+-  =dash=
+-  =f=
+-  =hl-todo=
+-  =kv=
+-  =magit=
+
+Then put this file in your =load-path=, and put this in your init file:
+
+#+BEGIN_SRC elisp
+  (require 'magit-todos)
+#+END_SRC
+
+** Usage
+
+Run =magit-todos-mode=, then open a Magit status buffer.
+
+** Tips
+
+You can customize settings in the =magit-todos= group.
+
+For example, in the Org repo, there are false positives for =next= in the =testing= directory's test files.  You could use ~add-dir-local-variable~ to set ~magit-todos-ignore-directories~ to ~"testing"~, and none of the files in that directory would be scanned for items.
+
+** Credits
+
+This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
+
+** License
+
+GPLv3
