@@ -180,7 +180,7 @@ This should generally be set automatically by customizing
 `magit-todos-keywords'.")
 
 (defvar magit-todos-ignored-directories nil
-  "Automatically set by `magit-todos-ignore-directories'.")
+  "Automatically set by `magit-todos--repo-todos'.")
 
 (defvar magit-todo-section-map
   (let ((m (make-sparse-keymap)))
@@ -219,7 +219,8 @@ PATH defaults to `default-directory'."
                           (a-get item :keyword))
             (keyword-index (keyword)
                            (or (-elem-index keyword magit-todos-keywords-list) 0)))
-    (let* ((default-directory (or path default-directory))
+    (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
+           (default-directory (or path default-directory))
            (files (funcall magit-todos-repo-files-function default-directory)))
       (--> files
            (-map #'magit-todos--file-todos it)
