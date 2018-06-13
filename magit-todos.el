@@ -84,13 +84,6 @@
   "Show TODO items in source code comments in repos' files."
   :group 'magit)
 
-(defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
-  "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
-  :type '(repeat string)
-  :set (lambda (option value)
-         (set-default option value)
-         (customize-set-variable 'magit-todos-keywords magit-todos-keywords)))
-
 (defcustom magit-todos-max-items 20
   "Automatically collapse the section if there are more than this many items."
   :type 'integer)
@@ -129,6 +122,13 @@ regular expression."
                                                                   ":"
                                                                   (optional (1+ blank)
                                                                             (group-n 3 (1+ not-newline))))))))))
+
+(defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
+  "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
+  :type '(repeat string)
+  :set (lambda (option value)
+         (set-default option value)
+         (customize-set-variable 'magit-todos-keywords magit-todos-keywords)))
 
 (defcustom magit-todos-recursive nil
   "Recurse into subdirectories when looking for to-do items.
@@ -237,7 +237,43 @@ This should generally be set automatically by customizing
 
 ;;;; Functions
 
+;; (((:filename . "magit-todos.el")
+;; (:keyword . #("TODO" 0 4 ...))
+;; (:position . 13709)
+;; (:string . #("TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed" 0 4 ... 6 82 ...)))
+;;
+
+;; grep -r -b --with-filename 'TODO:' ./*
+;; rg -b --with-filename --no-heading --no-line-number 'TODO:'
+;; (defun magit-todos--repo-todos (&optional path)
+;;   (list
+;;    (list '(:filename . "magit-todos.el")
+;;          '(:keyword . #("TODO"))
+;;          '(:position . 13709)
+;;          '(:string . #("TODO: Some match term blabla")))))
+
+(defun magit-todos--grep-to-match (grep-match)
+  "Convert GREP-MATCH to the repo-todos format."
+  (let* ((tuples (split-string grep-match ":"))
+         (file-name (replace-regexp-in-string (projectile-project-root) "" (car tuples)))
+         (byte-pos (cadr tuples))
+         (desc (reduce #'concat (cddr tuples))))
+    `((:filename . ,file-name)
+      (:keyword . #("TODO"))
+      (:position . ,byte-pos)
+      (:string . ,desc))))
+
 (defun magit-todos--repo-todos (&optional path)
+  "Pull in repo todos quickly, with optional PATH."
+  (let* ((cmd (format
+               ;; "grep -r -b --with-filename 'TODO' %s"
+               "rg -b --with-filename --no-heading --no-line-number 'TODO' %s"
+               (projectile-project-root)))
+         (matches (shell-command-to-string cmd))
+         (matches (split-string matches "\n")))
+    (mapcar #'magit-todos--grep-to-match matches)))
+
+(defun xmagit-todos--repo-todos (&optional path)
   "Return to-do items for repo at PATH.
 PATH defaults to `default-directory'."
   (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
