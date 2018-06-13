@@ -119,9 +119,9 @@ regular expression."
                                                                             (1+ (syntax comment-start))))
                                                                  (1+ blank)
                                                                  (group (or ,@keywords))
-                                                                 (optional ":")
-                                                                 (1+ blank)
-                                                                 (group (1+ not-newline))))))))
+                                                                 (optional (optional ":")
+                                                                           (1+ blank)
+                                                                           (group (1+ not-newline)))))))))
 
 (defcustom magit-todos-recursive nil
   "Recurse into subdirectories when looking for to-do items.
