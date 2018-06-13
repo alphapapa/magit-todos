@@ -159,6 +159,10 @@ always ignored, even if not listed here."
          (set-default option value)
          (setq-default magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always value)))))
 
+(defcustom magit-todos-ignore-file-suffixes '(".org_archive")
+  "Ignore files with these suffixes."
+  :type '(repeat string))
+
 (defcustom magit-todos-scan-file-predicate #'magit-file-tracked-p
   "Function which should return non-nil if a file should be scanned for to-dos.
 If nil, all files found by `magit-todos-repo-files-function' will
@@ -242,7 +246,11 @@ PATH defaults to `default-directory'."
                            (or (-elem-index keyword magit-todos-keywords-list) 0)))
     (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
            (default-directory (or path default-directory))
-           (files (funcall magit-todos-repo-files-function default-directory)))
+           (files (--> (funcall magit-todos-repo-files-function default-directory)
+                       ;; Use -list because it seems impossible to set a dir-local variable to a single-element list
+                       (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                          thereis (s-suffix? suffix it))
+                                 it))))
       (--> files
            (-map #'magit-todos--file-todos it)
            (-non-nil it)
