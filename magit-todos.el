@@ -109,11 +109,16 @@ This should generally be set automatically by customizing
   :type '(repeat string)
   :set (lambda (option value)
          (set-default option value)
-         (customize-set-variable 'magit-todos-keywords magit-todos-keywords)))
+         (when (boundp 'magit-todos-keywords)
+           ;; Avoid setting `magit-todos-keywords' before it's defined.
 
-(defcustom magit-todos-max-items 20
-  "Automatically collapse the section if there are more than this many items."
-  :type 'integer)
+           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
+           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
+           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
+           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
+           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
+           ;; and now it's gone, but the manual still mentions it. ???
+           (custom-reevaluate-setting 'magit-todos-keywords))))
 
 (defcustom magit-todos-keywords 'hl-todo-keyword-faces
   "To-do keywords to display in Magit status buffer.
@@ -149,6 +154,10 @@ regular expression."
                                                                   ":"
                                                                   (optional (1+ blank)
                                                                             (group-n 3 (1+ not-newline))))))))))
+
+(defcustom magit-todos-max-items 20
+  "Automatically collapse the section if there are more than this many items."
+  :type 'integer)
 
 (defcustom magit-todos-recursive nil
   "Recurse into subdirectories when looking for to-do items.
