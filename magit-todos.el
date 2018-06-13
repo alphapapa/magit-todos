@@ -346,7 +346,7 @@ is killed."
             (kill-buffer)))))))
 
 (defun magit-todos--insert-items-by-type (type)
-  "Insert to-do items into current buffer."
+  "Insert TYPE to-do items into current buffer."
   (when-let ((items (magit-todos--repo-todos type))
              (magit-section-show-child-count t)
              (magit-section-set-visibility-hook (cons (with-no-warnings
@@ -355,7 +355,7 @@ is killed."
                                                             'hide)))
                                                       magit-section-set-visibility-hook)))
     (magit-insert-section (todos)
-      (magit-insert-heading (format "%ss:" type))
+      (magit-insert-heading (format "  %ss:" type))
       (dolist (item items)
         (-let* (((&alist :filename filename :string string) item)
                 (filename (propertize filename 'face 'magit-filename))
@@ -366,7 +366,10 @@ is killed."
       (insert "\n"))))
 
 (defun magit-todos--insert-items ()
-  (mapcar #'magit-todos--insert-items-by-type '("TODO" "FIXME")))
+  "Work across various types."
+  (magit-insert-section (todos)
+    (magit-insert-heading (format "GTDs:"))
+    (mapc #'magit-todos--insert-items-by-type '("TODO" "FIXME"))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
