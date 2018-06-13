@@ -81,7 +81,8 @@
 ;;;; Customization
 
 (defgroup magit-todos nil
-  "Options for `magit-todos'.")
+  "Show TODO items in source code comments in repos' files."
+  :group 'magit)
 
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
