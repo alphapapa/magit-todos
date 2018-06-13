@@ -262,6 +262,7 @@ PATH defaults to `default-directory'."
 If FILE is not being visited, it is visited and then its buffer
 is killed."
   (cl-symbol-macrolet ((position (match-beginning 0))
+                       (org-level (match-string 1))
                        (keyword (match-string 2))
                        (description (or (match-string 3) "")))
     (let ((case-fold-search magit-todos-ignore-case)
@@ -282,7 +283,7 @@ is killed."
                    (string= "org" (f-ext (buffer-file-name))))
           (setq string-fn (lambda ()
                             (org-fontify-like-in-org-mode
-                             (format "%s %s %s" filename keyword description)))))
+                             (format "%s %s %s" org-level keyword description)))))
         (prog1 (save-excursion
                  (save-restriction
                    (widen)
