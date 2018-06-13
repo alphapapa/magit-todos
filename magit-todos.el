@@ -300,6 +300,7 @@ is killed."
                    (widen)
                    (goto-char (point-min))
                    (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
+                            ;; TODO: Move string formatting to end of process and experiment with alignment
                             collect (a-list :filename filename
                                             :keyword keyword
                                             :position position
