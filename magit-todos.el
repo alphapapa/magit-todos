@@ -205,7 +205,7 @@ This should generally be set automatically by customizing
   (interactive)
   (pcase-let* ((item (magit-current-section))
                ((eieio value) item)
-               ((map (:file file) (:position position)) value))
+               ((map (:filename file) (:position position)) value))
     (switch-to-buffer (or (find-buffer-visiting file)
                           (find-file-noselect file)))
     (goto-char position)))
@@ -232,18 +232,19 @@ PATH defaults to `default-directory'."
 
 (defun magit-todos--repo-files (directory)
   "Return list of files in DIRECTORY that should be scanned for items."
-  (if magit-todos-recursive
-      (let ((git-dir (f-expand".git")))
-        (append (f-files directory magit-todos-scan-file-predicate)
-                (--> (f-directories directory)
-                     ;; This works fine, but I wonder if a simple regexp match would be faster...
-                     (--reject (cl-loop for dir in magit-todos-ignored-directories
-                                        thereis (string= dir (f-base it)))
-                               it)
-                     (--map (f-files it magit-todos-scan-file-predicate 'recursive) it)
-                     (-flatten it))))
-    ;; Non-recursive
-    (f-files directory magit-todos-scan-file-predicate)))
+  (sort (if magit-todos-recursive
+            (let ((git-dir (f-expand".git")))
+              (append (f-files directory magit-todos-scan-file-predicate)
+                      (--> (f-directories directory)
+                           ;; This works fine, but I wonder if a simple regexp match would be faster...
+                           (--reject (cl-loop for dir in magit-todos-ignored-directories
+                                              thereis (string= dir (f-base it)))
+                                     it)
+                           (--map (f-files it magit-todos-scan-file-predicate 'recursive) it)
+                           (-flatten it))))
+          ;; Non-recursive
+          (f-files directory magit-todos-scan-file-predicate))
+        #'string<))
 
 (defun magit-todos--file-todos (file)
   "Return to-do items for FILE.
@@ -254,13 +255,16 @@ is killed."
                      (format "%s: %s" (propertize (match-string 2)
                                                   'face (magit-todos--keyword-face (match-string 2)))
                              (match-string 3))))
-        kill-buffer)
+        (base-directory default-directory)
+        kill-buffer filename)
     (with-current-buffer (cl-typecase file
                            (buffer file)
                            (string (or (find-buffer-visiting file)
                                        (progn
                                          (setq kill-buffer t)
                                          (find-file-noselect file nil 'raw)))))
+      (setq filename (f-relative (buffer-file-name)
+                                 base-directory))
       (when (and magit-todos-fontify-org
                  (string= "org" (f-ext (buffer-file-name))))
         (setq string-fn (lambda ()
@@ -273,7 +277,8 @@ is killed."
                  (widen)
                  (goto-char (point-min))
                  (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
-                          collect (a-list :file (buffer-file-name)
+                          collect (a-list :filename filename
+                                          :keyword (match-string 2)
                                           :position (match-beginning 0)
                                           :string (funcall string-fn)))))
         (when kill-buffer
@@ -286,8 +291,8 @@ is killed."
     (magit-insert-section (todos)
       (magit-insert-heading "TODOs:")
       (dolist (item items)
-        (-let* (((&alist :file file :position position :string string) item)
-                (filename (propertize (f-filename file) 'face 'magit-filename))
+        (-let* (((&alist :filename filename :position position :string string) item)
+                (filename (propertize filename 'face 'magit-filename))
                 (string (format "%s %s" filename string)))
           (magit-insert-section (todo item)
             (insert string)))
