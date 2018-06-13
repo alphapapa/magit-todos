@@ -270,7 +270,8 @@ This should generally be set automatically by customizing
                "rg -b --with-filename --no-heading --no-line-number 'TODO' %s"
                (projectile-project-root)))
          (matches (shell-command-to-string cmd))
-         (matches (split-string matches "\n")))
+         (matches (split-string matches "\n"))
+         (matches (remove-if (lambda (m) (equal "" m)) matches)))
     (mapcar #'magit-todos--grep-to-match matches)))
 
 (defun xmagit-todos--repo-todos (&optional path)
