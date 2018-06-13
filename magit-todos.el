@@ -68,6 +68,7 @@
 ;;;; Requirements
 
 (require 'cl-lib)
+(require 'org)
 (require 'seq)
 
 (require 'a)
