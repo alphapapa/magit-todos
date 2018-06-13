@@ -173,6 +173,15 @@ necessary."
   "Fontify items from Org files as Org headings."
   :type 'boolean)
 
+(defcustom magit-todos-sort-order '(magit-todos--sort-by-keyword
+                                    magit-todos--sort-by-filename
+                                    magit-todos--sort-by-position)
+  "Order in which to sort items."
+  :type '(repeat (choice (const :tag "Keyword" magit-todos--sort-by-keyword)
+                         (const :tag "Filename" magit-todos--sort-by-filename)
+                         (const :tag "Buffer position" magit-todos--sort-by-position)
+                         (function :tag "Custom function"))))
+
 ;;;; Variables
 
 (defvar magit-todos-keywords-list nil
@@ -231,9 +240,7 @@ PATH defaults to `default-directory'."
            (-map #'magit-todos--file-todos it)
            (-non-nil it)
            (-flatten-n 1 it)
-           (--sort (< (keyword-index (item-keyword it))
-                      (keyword-index (item-keyword other)))
-                   it)))))
+           (magit-todos--sort it)))))
 
 (defun magit-todos--repo-files (directory)
   "Return list of files in DIRECTORY that should be scanned for items."
@@ -315,6 +322,37 @@ is killed."
   (atypecase (a-get hl-todo-keyword-faces keyword)
     (string (list :inherit 'hl-todo :foreground it))
     (t it)))
+
+;;;;; Sorting
+
+;; TODO: Document sorting in readme
+;; TODO: Add more screenshots of sorting
+
+(defun magit-todos--sort (items)
+  "Return ITEMS sorted according to `magit-todos-sort-order'."
+  (dolist (fn (reverse magit-todos-sort-order) items)
+    (setq items (sort items fn))))
+
+(defun magit-todos--sort-by-keyword (a b)
+  "Return non-nil if A's keyword is before B's in `magit-todos-keywords-list'."
+  (cl-flet ((item-keyword (item)
+                          (a-get item :keyword))
+            (keyword-index (keyword)
+                           (or (-elem-index keyword magit-todos-keywords-list) 0)))
+    (< (keyword-index (item-keyword a))
+       (keyword-index (item-keyword b)))))
+
+(defun magit-todos--sort-by-position (a b)
+  "Return non-nil if A's position in its file is before B's."
+  (let ((a-position (a-get a :position))
+        (b-position (a-get b :position)))
+    (< a-position b-position)))
+
+(defun magit-todos--sort-by-filename (a b)
+  "Return non-nil if A's filename is `string<' B's."
+  (let ((a-filename (a-get a :filename))
+        (b-filename (a-get b :filename)))
+    (string< a-filename b-filename)))
 
 ;;;; Footer
 
