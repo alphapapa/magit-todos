@@ -326,9 +326,6 @@ is killed."
 
 ;;;;; Sorting
 
-;; TODO: Document sorting in readme
-;; TODO: Add more screenshots of sorting
-
 (defun magit-todos--sort (items)
   "Return ITEMS sorted according to `magit-todos-sort-order'."
   (dolist (fn (reverse magit-todos-sort-order) items)

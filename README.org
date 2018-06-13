@@ -8,15 +8,32 @@
 
 This package displays keyword entries from source code comments and Org files in the Magit status buffer.  Activating an item jumps to it in its file.  By default, it uses keywords from [[https://github.com/tarsius/hl-todo][hl-todo]], minus a few (like =NOTE=).
 
+** Contents
+:PROPERTIES:
+:TOC:      siblings
+:END:
+    -  [[#screenshots][Screenshots]]
+    -  [[#installation][Installation]]
+    -  [[#usage][Usage]]
+    -  [[#tips][Tips]]
+    -  [[#credits][Credits]]
+
 ** Screenshots
 
 [[screenshots/matrix.png]]
 
-Org headings can optionally be fontified as such:
+Org headings can optionally be fontified as such (this shows sorting by filename, then keyword, then buffer position):
 
 [[screenshots/org.png]]
 
+Sorting can be customized.  This shows sorting by keyword, then filename, then buffer position:
+
+[[screenshots/sort-keyword-filename-position.png]]
+
 ** Installation
+:PROPERTIES:
+:TOC:      0
+:END:
 
 If you installed from MELPA, you're done!
 
@@ -53,5 +70,12 @@ For example, in the Org repo, there are false positives for =next= in the =testi
 This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
 
 ** License
+:PROPERTIES:
+:TOC:      ignore
+:END:
 
 GPLv3
+
+# Local Variables:
+# before-save-hook: org-make-toc
+# End:
