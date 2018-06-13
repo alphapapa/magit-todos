@@ -90,6 +90,10 @@
          (set-default option value)
          (customize-set-variable 'magit-todos-keywords magit-todos-keywords)))
 
+(defcustom magit-todos-max-items 20
+  "Automatically collapse the section if there are more than this many items."
+  :type 'integer)
+
 (defcustom magit-todos-keywords 'hl-todo-keyword-faces
   "To-do keywords to display in Magit status buffer.
 If set to a list variable, may be a plain list or an alist in
@@ -287,7 +291,11 @@ is killed."
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer."
   (when-let ((items (magit-todos--repo-todos))
-             (magit-section-show-child-count t))
+             (magit-section-show-child-count t)
+             (magit-section-set-visibility-hook (cons (lambda (&rest ignore)
+                                                        (when (> (length items) magit-todos-max-items)
+                                                          'hide))
+                                                      magit-section-set-visibility-hook)))
     (magit-insert-section (todos)
       (magit-insert-heading "TODOs:")
       (dolist (item items)
