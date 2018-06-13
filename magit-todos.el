@@ -238,15 +238,14 @@ PATH defaults to `default-directory'."
 (defun magit-todos--repo-files (directory)
   "Return list of files in DIRECTORY that should be scanned for items."
   (sort (if magit-todos-recursive
-            (let ((git-dir (f-expand".git")))
-              (append (f-files directory magit-todos-scan-file-predicate)
-                      (--> (f-directories directory)
-                           ;; This works fine, but I wonder if a simple regexp match would be faster...
-                           (--reject (cl-loop for dir in magit-todos-ignored-directories
-                                              thereis (string= dir (f-base it)))
-                                     it)
-                           (--map (f-files it magit-todos-scan-file-predicate 'recursive) it)
-                           (-flatten it))))
+            (append (f-files directory magit-todos-scan-file-predicate)
+                    (--> (f-directories directory)
+                         ;; This works fine, but I wonder if a simple regexp match would be faster...
+                         (--reject (cl-loop for dir in magit-todos-ignored-directories
+                                            thereis (string= dir (f-base it)))
+                                   it)
+                         (--map (f-files it magit-todos-scan-file-predicate 'recursive) it)
+                         (-flatten it)))
           ;; Non-recursive
           (f-files directory magit-todos-scan-file-predicate))
         #'string<))
@@ -293,14 +292,15 @@ is killed."
   "Insert to-do items into current buffer."
   (when-let ((items (magit-todos--repo-todos))
              (magit-section-show-child-count t)
-             (magit-section-set-visibility-hook (cons (lambda (&rest ignore)
-                                                        (when (> (length items) magit-todos-max-items)
-                                                          'hide))
+             (magit-section-set-visibility-hook (cons (with-no-warnings
+                                                        (lambda (&rest ignore)
+                                                          (when (> (length items) magit-todos-max-items)
+                                                            'hide)))
                                                       magit-section-set-visibility-hook)))
     (magit-insert-section (todos)
       (magit-insert-heading "TODOs:")
       (dolist (item items)
-        (-let* (((&alist :filename filename :position position :string string) item)
+        (-let* (((&alist :filename filename :string string) item)
                 (filename (propertize filename 'face 'magit-filename))
                 (string (format "%s %s" filename string)))
           (magit-insert-section (todo item)
