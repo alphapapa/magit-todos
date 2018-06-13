@@ -115,13 +115,20 @@ regular expression."
                            (list value))))
            (setq keywords (seq-difference keywords magit-todos-ignored-keywords)
                  magit-todos-keywords-list keywords
-                 magit-todos-keywords-regexp (rx-to-string `(seq (group (or (seq bol (1+ "*")) ; Org files
-                                                                            (1+ (syntax comment-start))))
-                                                                 (1+ blank)
-                                                                 (group (or ,@keywords))
-                                                                 (optional (optional ":")
-                                                                           (1+ blank)
-                                                                           (group (1+ not-newline)))))))))
+                 magit-todos-keywords-regexp (rx-to-string `(or
+                                                             ;; Org item
+                                                             (seq bol (group-n 1 (1+ "*"))
+                                                                  (1+ blank)
+                                                                  (group-n 2 (or ,@keywords))
+                                                                  (1+ space)
+                                                                  (group-n 3 (1+ not-newline)))
+                                                             ;; Non-Org
+                                                             (seq (or bol (1+ blank))
+                                                                  (group-n 2 (or ,@keywords))
+                                                                  ;; Require the : to avoid spurious items
+                                                                  ":"
+                                                                  (optional (1+ blank)
+                                                                            (group-n 3 (1+ not-newline))))))))))
 
 (defcustom magit-todos-recursive nil
   "Recurse into subdirectories when looking for to-do items.
