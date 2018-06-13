@@ -263,11 +263,12 @@ This should generally be set automatically by customizing
       (:position . ,byte-pos)
       (:string . ,desc))))
 
-(defun magit-todos--repo-todos (&optional path)
-  "Pull in repo todos quickly, with optional PATH."
+(defun magit-todos--repo-todos (type &optional path)
+  "Pull in repo TYPE quickly, with optional PATH."
   (let* ((cmd (format
-               ;; "grep -r -b --with-filename 'TODO' %s"
-               "rg -b --with-filename --no-heading --no-line-number 'TODO' %s"
+               ;; "grep -r -b --with-filename 'TODO\\FIXME' %s"
+               "rg -b --with-filename --no-heading --no-line-number '%s' %s"
+               type
                (projectile-project-root)))
          (matches (shell-command-to-string cmd))
          (matches (split-string matches "\n"))
@@ -344,9 +345,9 @@ is killed."
           (when kill-buffer
             (kill-buffer)))))))
 
-(defun magit-todos--insert-items ()
+(defun magit-todos--insert-items-by-type (type)
   "Insert to-do items into current buffer."
-  (when-let ((items (magit-todos--repo-todos))
+  (when-let ((items (magit-todos--repo-todos type))
              (magit-section-show-child-count t)
              (magit-section-set-visibility-hook (cons (with-no-warnings
                                                         (lambda (&rest ignore)
@@ -354,7 +355,7 @@ is killed."
                                                             'hide)))
                                                       magit-section-set-visibility-hook)))
     (magit-insert-section (todos)
-      (magit-insert-heading "TODOs:")
+      (magit-insert-heading (format "%ss:" type))
       (dolist (item items)
         (-let* (((&alist :filename filename :string string) item)
                 (filename (propertize filename 'face 'magit-filename))
@@ -363,6 +364,9 @@ is killed."
             (insert string)))
         (insert "\n"))
       (insert "\n"))))
+
+(defun magit-todos--insert-items ()
+  (mapcar #'magit-todos--insert-items-by-type '("TODO" "FIXME")))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
