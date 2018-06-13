@@ -240,22 +240,18 @@ This should generally be set automatically by customizing
 (defun magit-todos--repo-todos (&optional path)
   "Return to-do items for repo at PATH.
 PATH defaults to `default-directory'."
-  (cl-flet ((item-keyword (item)
-                          (a-get item :keyword))
-            (keyword-index (keyword)
-                           (or (-elem-index keyword magit-todos-keywords-list) 0)))
-    (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
-           (default-directory (or path default-directory))
-           (files (--> (funcall magit-todos-repo-files-function default-directory)
-                       ;; Use -list because it seems impossible to set a dir-local variable to a single-element list
-                       (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                                          thereis (s-suffix? suffix it))
-                                 it))))
-      (--> files
-           (-map #'magit-todos--file-todos it)
-           (-non-nil it)
-           (-flatten-n 1 it)
-           (magit-todos--sort it)))))
+  (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
+         (default-directory (or path default-directory))
+         (files (--> (funcall magit-todos-repo-files-function default-directory)
+                     ;; Use -list because it seems impossible to set a dir-local variable to a single-element list
+                     (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                        thereis (s-suffix? suffix it))
+                               it))))
+    (--> files
+         (-map #'magit-todos--file-todos it)
+         (-non-nil it)
+         (-flatten-n 1 it)
+         (magit-todos--sort it))))
 
 (defun magit-todos--repo-files (directory)
   "Return list of files in DIRECTORY that should be scanned for items."
