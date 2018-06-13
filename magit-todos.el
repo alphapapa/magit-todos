@@ -333,6 +333,8 @@ is killed."
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
+  ;; TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed
+  ;; non-uppercase.  Preserving the distinction might be useful.
   (when magit-todos-ignore-case
     (setq keyword (upcase keyword)))
   (atypecase (a-get hl-todo-keyword-faces keyword)
