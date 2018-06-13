@@ -261,39 +261,39 @@ PATH defaults to `default-directory'."
   "Return to-do items for FILE.
 If FILE is not being visited, it is visited and then its buffer
 is killed."
-  (let ((case-fold-search magit-todos-ignore-case)
-        (string-fn (lambda ()
-                     (format "%s: %s" (propertize (match-string 2)
-                                                  'face (magit-todos--keyword-face (match-string 2)))
-                             (match-string 3))))
-        (base-directory default-directory)
-        kill-buffer filename)
-    (with-current-buffer (cl-typecase file
-                           (buffer file)
-                           (string (or (find-buffer-visiting file)
-                                       (progn
-                                         (setq kill-buffer t)
-                                         (find-file-noselect file nil 'raw)))))
-      (setq filename (f-relative (buffer-file-name) base-directory))
-      (when (and magit-todos-fontify-org
-                 (string= "org" (f-ext (buffer-file-name))))
-        (setq string-fn (lambda ()
-                          (org-fontify-like-in-org-mode
-                           (format "%s %s %s"
-                                   (match-string 1)
-                                   (match-string 2)
-                                   (match-string 3))))))
-      (prog1 (save-excursion
-               (save-restriction
-                 (widen)
-                 (goto-char (point-min))
-                 (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
-                          collect (a-list :filename filename
-                                          :keyword (match-string 2)
-                                          :position (match-beginning 0)
-                                          :string (funcall string-fn)))))
-        (when kill-buffer
-          (kill-buffer))))))
+  (cl-symbol-macrolet ((position (match-beginning 0))
+                       (keyword (match-string 2))
+                       (description (or (match-string 3) "")))
+    (let ((case-fold-search magit-todos-ignore-case)
+          (string-fn (lambda ()
+                       (format "%s: %s"
+                               (propertize keyword 'face (magit-todos--keyword-face keyword))
+                               description)))
+          (base-directory default-directory)
+          kill-buffer filename)
+      (with-current-buffer (cl-typecase file
+                             (buffer file)
+                             (string (or (find-buffer-visiting file)
+                                         (progn
+                                           (setq kill-buffer t)
+                                           (find-file-noselect file nil 'raw)))))
+        (setq filename (f-relative (buffer-file-name) base-directory))
+        (when (and magit-todos-fontify-org
+                   (string= "org" (f-ext (buffer-file-name))))
+          (setq string-fn (lambda ()
+                            (org-fontify-like-in-org-mode
+                             (format "%s %s %s" filename keyword description)))))
+        (prog1 (save-excursion
+                 (save-restriction
+                   (widen)
+                   (goto-char (point-min))
+                   (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
+                            collect (a-list :filename filename
+                                            :keyword keyword
+                                            :position position
+                                            :string (funcall string-fn)))))
+          (when kill-buffer
+            (kill-buffer)))))))
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer."
