@@ -78,6 +78,25 @@
 (require 'kv)
 (require 'magit)
 
+;;;; Variables
+
+(defvar magit-todos-keywords-list nil
+  "List of to-do keywords.
+Set automatically by `magit-todos-keywords' customization.")
+
+(defvar magit-todos-keywords-regexp nil
+  "Regular expression matching desired to-do keywords in source and Org files.
+This should generally be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-ignored-directories nil
+  "Automatically set by `magit-todos--repo-todos'.")
+
+(defvar magit-todo-section-map
+  (let ((m (make-sparse-keymap)))
+    (define-key m [remap magit-visit-thing] #'magit-todos--goto-item)
+    m))
+
 ;;;; Customization
 
 (defgroup magit-todos nil
@@ -192,25 +211,6 @@ necessary."
                          (const :tag "Filename" magit-todos--sort-by-filename)
                          (const :tag "Buffer position" magit-todos--sort-by-position)
                          (function :tag "Custom function"))))
-
-;;;; Variables
-
-(defvar magit-todos-keywords-list nil
-  "List of to-do keywords.
-Set automatically by `magit-todos-keywords' customization.")
-
-(defvar magit-todos-keywords-regexp nil
-  "Regular expression matching desired to-do keywords in source and Org files.
-This should generally be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar magit-todos-ignored-directories nil
-  "Automatically set by `magit-todos--repo-todos'.")
-
-(defvar magit-todo-section-map
-  (let ((m (make-sparse-keymap)))
-    (define-key m [remap magit-visit-thing] #'magit-todos--goto-item)
-    m))
 
 ;;;; Commands
 
