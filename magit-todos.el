@@ -277,7 +277,7 @@ necessary."
   "Pull in repo TYPE quickly, with optional PATH."
   (let* ((cmd (format
                ;; "grep -r -b --with-filename 'TODO\\FIXME' %s"
-               "rg -b --with-filename --no-heading --no-line-number '%s' %s &"
+               "rg -b --hidden --with-filename --no-heading --no-line-number '%s' %s &"
                type
                (projectile-project-root)))
          (matches (shell-command-to-string cmd))
