@@ -191,7 +191,7 @@ always ignored, even if not listed here."
          (set-default option value)
          (setq-default magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always value)))))
 
-(defcustom magit-todos-ignore-file-suffixes '(".org_archive")
+(defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
   "Ignore files with these suffixes."
   :type '(repeat string))
 
