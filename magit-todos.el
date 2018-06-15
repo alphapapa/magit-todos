@@ -166,12 +166,15 @@ nil.  You might like to use a dir-local variable to set this in
 certain repos."
   :type 'boolean)
 
-(defcustom magit-todos-repo-files-function #'magit-todos--repo-files
+(defcustom magit-todos-scan-files #'magit-list-files
   "Function that returns a list of files in a repo to scan for to-do items.
-The function should take one argument, the path to the repo's
-working tree.  Note that if it recurses into subdirectories, it
-is responsible for skipping the \".git\" directory."
-  :type 'function)
+See `magit-todos-recursive' for recursive settings.  The function
+should take one argument, the path to the repo's working tree.
+Note that if it recurses into subdirectories, it is responsible
+for skipping the \".git\" directory."
+  :type '(choice (const :tag "Files tracked by git" #'magit-list-files)
+                 (const :tag "All files in working tree" #'magit-todos--working-tree-files)
+                 (function :tag "Custom function")))
 
 (defvar magit-todos-ignore-directories-always
   '(".git" ".cask")
@@ -192,16 +195,6 @@ always ignored, even if not listed here."
   "Ignore files with these suffixes."
   :type '(repeat string))
 
-(defcustom magit-todos-scan-file-predicate #'magit-file-tracked-p
-  "Function which should return non-nil if a file should be scanned for to-dos.
-If nil, all files found by `magit-todos-repo-files-function' will
-be scanned.  The default value, `magit-tracked-file-p', runs a
-git process for each file found, which might be slow in large
-repos."
-  :type '(choice (const :tag "Tracked files" magit-file-tracked-p)
-                 (const :tag "All files" nil)
-                 (function :tag "Custom predicate")))
-
 (defcustom magit-todos-ignore-case nil
   "Upcase keywords found in files.
 If nil, a keyword like \"Todo:\" will not be shown.  `upcase' can
@@ -221,6 +214,13 @@ necessary."
                          (const :tag "Filename" magit-todos--sort-by-filename)
                          (const :tag "Buffer position" magit-todos--sort-by-position)
                          (function :tag "Custom function"))))
+
+(defcustom magit-todos-depth nil
+  "Maximum depth of files in repo working tree to scan for to-dos."
+  ;; TODO: Make depth setting work
+  ;; TODO: Automatic depth setting that works well in large repos
+  :type '(choice (const :tag "No limit" nil)
+                 integer))
 
 ;;;; Commands
 
@@ -252,31 +252,28 @@ necessary."
 PATH defaults to `default-directory'."
   (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
          (default-directory (or path default-directory))
-         (files (--> (funcall magit-todos-repo-files-function default-directory)
-                     ;; Use -list because it seems impossible to set a dir-local variable to a single-element list
-                     (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                                        thereis (s-suffix? suffix it))
-                               it))))
+         (files (->> (funcall magit-todos-scan-files)
+                     magit-todos--filter-files)))
     (--> files
          (-map #'magit-todos--file-todos it)
          (-non-nil it)
          (-flatten-n 1 it)
          (magit-todos--sort it))))
 
-(defun magit-todos--repo-files (directory)
-  "Return list of files in DIRECTORY that should be scanned for items."
-  (sort (if magit-todos-recursive
-            (append (f-files directory magit-todos-scan-file-predicate)
-                    (--> (f-directories directory)
-                         ;; This works fine, but I wonder if a simple regexp match would be faster...
-                         (--reject (cl-loop for dir in magit-todos-ignored-directories
-                                            thereis (string= dir (f-base it)))
-                                   it)
-                         (--map (f-files it magit-todos-scan-file-predicate 'recursive) it)
-                         (-flatten it)))
-          ;; Non-recursive
-          (f-files directory magit-todos-scan-file-predicate))
-        #'string<))
+(defun magit-todos--working-tree-files ()
+  "Return list of all files in working tree."
+  (f-files default-directory nil magit-todos-recursive))
+
+(defun magit-todos--filter-files (files)
+  "Return FILES without ignored ones.
+FILES should be a list of files, already flattened."
+  (--> files
+       (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                          thereis (s-suffix? suffix it))
+                 it)
+       (--remove (cl-loop for dir in magit-todos-ignored-directories
+                          thereis (string= dir (f-base it)))
+                 it)))
 
 (defun magit-todos--file-todos (file)
   "Return to-do items for FILE.
@@ -292,31 +289,44 @@ is killed."
                                (propertize keyword 'face (magit-todos--keyword-face keyword))
                                description)))
           (base-directory default-directory)
+          (enable-local-variables nil)
           kill-buffer filename)
-      (with-current-buffer (cl-typecase file
-                             (buffer file)
-                             (string (or (find-buffer-visiting file)
-                                         (progn
-                                           (setq kill-buffer t)
-                                           (find-file-noselect file nil 'raw)))))
-        (setq filename (f-relative (buffer-file-name) base-directory))
-        (when (and magit-todos-fontify-org
-                   (string= "org" (f-ext (buffer-file-name))))
-          (setq string-fn (lambda ()
-                            (org-fontify-like-in-org-mode
-                             (format "%s %s %s" org-level keyword description)))))
-        (prog1 (save-excursion
-                 (save-restriction
-                   (widen)
-                   (goto-char (point-min))
-                   (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
-                            ;; TODO: Move string formatting to end of process and experiment with alignment
-                            collect (a-list :filename filename
-                                            :keyword keyword
-                                            :position position
-                                            :string (funcall string-fn)))))
-          (when kill-buffer
-            (kill-buffer)))))))
+      (catch 'not-a-file
+        ;; `magit-list-files' seems to return directories sometimes, and we should skip those, so we
+        ;; check here when it's not open in a buffer to avoid calling `f-file?' on every "file".
+        ;; NOTE: I think this will work, but I'm not sure if `find-buffer-visiting' could return
+        ;; e.g. a dired buffer, so we might need to check every file after all, but I'd like to
+        ;; avoid that since it means a lot of calls.
+        (with-current-buffer (cl-typecase file
+                               (buffer file)
+                               (string (or (find-buffer-visiting file)
+                                           (progn
+                                             (unless (f-file? file)
+                                               (throw 'not-a-file nil))
+                                             (setq kill-buffer t)
+                                             ;; NOTE: Not sure if nowarn is needed, but it seems
+                                             ;; like a good idea, because we don't want this to
+                                             ;; raise any errors.
+                                             (find-file-noselect file 'nowarn 'raw)))))
+          (setq filename (f-relative (buffer-file-name) base-directory))
+          (when (and magit-todos-fontify-org
+                     (string= "org" (f-ext (buffer-file-name))))
+            ;; TODO: Capture Org priority and allow sorting by it.
+            (setq string-fn (lambda ()
+                              (org-fontify-like-in-org-mode
+                               (format "%s %s %s" org-level keyword description)))))
+          (prog1 (save-excursion
+                   (save-restriction
+                     (widen)
+                     (goto-char (point-min))
+                     (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
+                              ;; TODO: Move string formatting to end of process and experiment with alignment
+                              collect (a-list :filename filename
+                                              :keyword keyword
+                                              :position position
+                                              :string (funcall string-fn)))))
+            (when kill-buffer
+              (kill-buffer))))))))
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer."
