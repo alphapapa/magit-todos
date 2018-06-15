@@ -67,7 +67,8 @@ For example, in the Org repo, there are false positives for =next= in the =testi
 
 ** Credits
 
-This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
++  This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
++  The =ag= support was made much simpler by the great [[https://github.com/joddie/pcre2el][pcre2el]] package by Jon Oddie.
 
 ** License
 :PROPERTIES:

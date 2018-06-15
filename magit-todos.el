@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 0.1-pre
-;; Package-Requires: ((emacs "25.2") (a) (anaphora) (dash) (f) (hl-todo) (kv) (magit))
+;; Package-Requires: ((emacs "25.2") (a) (anaphora) (dash) (f) (hl-todo) (kv) (magit) (pcre2el)
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -78,6 +78,7 @@
 (require 'hl-todo)
 (require 'kv)
 (require 'magit)
+(require 'pcre2el)
 
 ;;;; Variables
 
@@ -85,9 +86,19 @@
   "List of to-do keywords.
 Set automatically by `magit-todos-keywords' customization.")
 
-(defvar magit-todos-keywords-regexp nil
+(defvar magit-todos-search-regexp nil
   "Regular expression matching desired to-do keywords in source and Org files.
-This should generally be set automatically by customizing
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-ag-result-regexp nil
+  "Regular expression for ag results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-ag-search-regexp nil
+  "Regular expression for ag.
+This should be set automatically by customizing
 `magit-todos-keywords'.")
 
 (defvar magit-todos-ignored-directories nil
@@ -125,7 +136,7 @@ This should generally be set automatically by customizing
 If set to a list variable, may be a plain list or an alist in
 which the keys are the keywords.
 
-When set, sets `magit-todos-keywords-regexp' to the appropriate
+When set, sets `magit-todos-search-regexp' to the appropriate
 regular expression."
   :type '(choice (repeat :tag "Custom list" string)
                  (const :tag "Keywords from `hl-todo'" hl-todo-keyword-faces)
@@ -140,20 +151,51 @@ regular expression."
                            (list value))))
            (setq keywords (seq-difference keywords magit-todos-ignored-keywords)
                  magit-todos-keywords-list keywords
-                 magit-todos-keywords-regexp (rx-to-string `(or
-                                                             ;; Org item
-                                                             (seq bol (group-n 1 (1+ "*"))
+                 magit-todos-search-regexp (rx-to-string `(or
+                                                           ;; Org item
+                                                           (seq bol (group (1+ "*"))
+                                                                (1+ blank)
+                                                                (group (or ,@keywords))
+                                                                (1+ space)
+                                                                (group (1+ not-newline)))
+                                                           ;; Non-Org
+                                                           (seq (group (or bol (1+ blank)))
+                                                                (group (or ,@keywords))
+                                                                ;; Require the : to avoid spurious items
+                                                                ":"
+                                                                (optional (1+ blank)
+                                                                          (group (1+ not-newline))))))
+                 ;; NOTE: The pcre2el library completely saves us here.  It is fantastic.
+                 magit-todos-ag-search-regexp (rxt-elisp-to-pcre magit-todos-search-regexp)
+                 magit-todos-ag-result-regexp (rx-to-string `(seq bol
+                                                                  ;; Filename
+                                                                  (group-n 1 (1+ (not (any ":")))) ":"
+                                                                  ;; Line
+                                                                  (group-n 2 (1+ digit)) ":"
+                                                                  ;; Column
+                                                                  (group-n 3 (1+ digit)) ":"
+                                                                  (minimal-match (0+ not-newline))
+                                                                  ;; Keyword
+                                                                  (group-n 4 (or ,@keywords)) (optional ":")
                                                                   (1+ blank)
-                                                                  (group-n 2 (or ,@keywords))
-                                                                  (1+ space)
-                                                                  (group-n 3 (1+ not-newline)))
-                                                             ;; Non-Org
-                                                             (seq (or bol (1+ blank))
-                                                                  (group-n 2 (or ,@keywords))
-                                                                  ;; Require the : to avoid spurious items
-                                                                  ":"
-                                                                  (optional (1+ blank)
-                                                                            (group-n 3 (1+ not-newline))))))))))
+                                                                  ;; Description
+                                                                  (group-n 5 (1+ not-newline))))))))
+
+(defcustom magit-todos-scan-fn nil
+  "File scanning method.
+Will attempt to find local utilities (ag) and fallback to
+scanning from inside Emacs."
+  :type '(choice (const :tag "Automatic" nil)
+                 (const :tag "ag" magit-todos--ag-scan)
+                 (const :tag "Emacs" magit-todos--emacs-scan)
+                 (function :tag "Custom function"))
+  :set (lambda (option value)
+         (unless value
+           ;; Choosing automatically
+           (setq value (cond ((executable-find "ag")
+                              #'magit-todos--ag-scan)
+                             (t #'magit-todos--emacs-scan))))
+         (set-default option value)))
 
 (defcustom magit-todos-max-items 20
   "Automatically collapse the section if there are more than this many items."
@@ -166,12 +208,14 @@ nil.  You might like to use a dir-local variable to set this in
 certain repos."
   :type 'boolean)
 
-(defcustom magit-todos-scan-files #'magit-list-files
+(defcustom magit-todos-internal-scan-files-fn #'magit-list-files
   "Function that returns a list of files in a repo to scan for to-do items.
-See `magit-todos-recursive' for recursive settings.  The function
-should take one argument, the path to the repo's working tree.
-Note that if it recurses into subdirectories, it is responsible
-for skipping the \".git\" directory."
+This is used when scanning from within Emacs, as opposed to using
+an external tool.  See `magit-todos-recursive' for recursive
+settings.  The function should take one argument, the path to the
+repo's working tree.  Note that if it recurses into
+subdirectories, it is responsible for skipping the \".git\"
+directory."
   :type '(choice (const :tag "Files tracked by git" #'magit-list-files)
                  (const :tag "All files in working tree" #'magit-todos--working-tree-files)
                  (function :tag "Custom function")))
@@ -215,12 +259,20 @@ necessary."
                          (const :tag "Buffer position" magit-todos--sort-by-position)
                          (function :tag "Custom function"))))
 
-(defcustom magit-todos-depth nil
-  "Maximum depth of files in repo working tree to scan for to-dos."
-  ;; TODO: Make depth setting work
+(defcustom magit-todos-depth 0
+  "Maximum depth of files in repo working tree to scan for to-dos.
+Deeper scans can be slow in large projects.  You may wish to set
+this in a directory-local variable for certain projects."
+  ;; TODO: Make depth setting work with --emacs-scan
   ;; TODO: Automatic depth setting that works well in large repos
-  :type '(choice (const :tag "No limit" nil)
+  :type '(choice (const :tag "Repo root directory only" 0)
                  integer))
+
+(defcustom magit-ag-timeout 2
+  "When scanning with ag, cancel scan after this many seconds.
+In case of accidentally scanning deep into a very large repo,
+this stops ag so the Magit status buffer won't be delayed."
+  :type 'integer)
 
 ;;;; Commands
 
@@ -240,10 +292,14 @@ necessary."
   (interactive)
   (pcase-let* ((item (magit-current-section))
                ((eieio value) item)
-               ((map (:filename file) (:position position)) value))
+               ((map (:filename file) (:position position) (:line line) (:column column )) value))
     (switch-to-buffer (or (find-buffer-visiting file)
                           (find-file-noselect file)))
-    (goto-char position)))
+    (if position
+        (goto-char position)
+      (goto-char (point-min))
+      (forward-line (1- line))
+      (forward-char column))))
 
 ;;;; Functions
 
@@ -251,13 +307,8 @@ necessary."
   "Return to-do items for repo at PATH.
 PATH defaults to `default-directory'."
   (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
-         (default-directory (or path default-directory))
-         (files (->> (funcall magit-todos-scan-files)
-                     magit-todos--filter-files)))
-    (--> files
-         (-map #'magit-todos--file-todos it)
-         (-non-nil it)
-         (-flatten-n 1 it)
+         (path (or path default-directory)))
+    (--> (funcall magit-todos-scan-fn path)
          (magit-todos--sort it))))
 
 (defun magit-todos--working-tree-files ()
@@ -319,7 +370,7 @@ is killed."
                    (save-restriction
                      (widen)
                      (goto-char (point-min))
-                     (cl-loop while (re-search-forward magit-todos-keywords-regexp nil 'noerror)
+                     (cl-loop while (re-search-forward magit-todos-search-regexp nil 'noerror)
                               ;; TODO: Move string formatting to end of process and experiment with alignment
                               collect (a-list :filename filename
                                               :keyword keyword
@@ -358,6 +409,51 @@ is killed."
     (string (list :inherit 'hl-todo :foreground it))
     (t it)))
 
+;;;;; Directory scanning
+
+(defun magit-todos--emacs-scan (directory)
+  "Return to-dos in DIRECTORY, scanning from inside Emacs."
+  (--> (funcall magit-todos-internal-scan-files-fn directory)
+       (magit-todos--filter-files it)
+       (-map #'magit-todos--file-todos it)
+       (-non-nil it)
+       (-flatten-n 1 it)))
+
+(defun magit-todos--ag-scan (directory)
+  "Return to-dos in DIRECTORY, scanning with ag."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let ((depth (number-to-string magit-todos-depth))
+        (timeout (number-to-string magit-ag-timeout)))
+    (with-temp-buffer
+      (let ((default-directory directory)
+            (stderr-file (make-temp-file "ag-stderr")))
+        (unwind-protect
+            (progn
+              (erase-buffer)
+              (let ((exit-code (call-process "nice" nil (list t stderr-file) nil "-n5"
+                                             "timeout" timeout
+                                             "ag" "--nocolor" "--column"
+                                             "--depth" depth
+                                             magit-todos-ag-search-regexp)))
+                (unless (zerop exit-code)
+                  (message (format "(magit-todos) ag exited non-zero: %s: %s" exit-code (f-read stderr-file)))))
+              (goto-char (point-min))
+              (cl-loop while (re-search-forward magit-todos-ag-result-regexp nil t)
+                       ;; TODO: Filter directories from ag
+                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                       thereis (s-suffix? suffix (match-string 1)))
+                       collect (a-list :filename (match-string 1)
+                                       :line (string-to-number (match-string 2))
+                                       :column (string-to-number (match-string 3))
+                                       :keyword (match-string 4)
+                                       :string (format "%s: %s"
+                                                       (propertize (match-string 4)
+                                                                   'face (magit-todos--keyword-face (match-string 4)))
+                                                       (match-string 5)))
+                       do (forward-line 1)))
+          (delete-file stderr-file))))))
+
 ;;;;; Sorting
 
 (defun magit-todos--sort (items)
@@ -376,8 +472,10 @@ is killed."
 
 (defun magit-todos--sort-by-position (a b)
   "Return non-nil if A's position in its file is before B's."
-  (let ((a-position (a-get a :position))
-        (b-position (a-get b :position)))
+  (let ((a-position (or (a-get a :position)
+                        (a-get a :line)))
+        (b-position (or (a-get b :position)
+                        (a-get b :line))))
     (< a-position b-position)))
 
 (defun magit-todos--sort-by-filename (a b)
