@@ -276,6 +276,7 @@ this stops ag so the Magit status buffer won't be delayed."
 
 ;;;; Commands
 
+;;;###autoload
 (define-minor-mode magit-todos-mode
   "Show list of to-do items in Magit status buffer for tracked files in repo."
   :group 'magit-todos
