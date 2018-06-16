@@ -304,7 +304,45 @@ this stops ag so the Magit status buffer won't be delayed."
 
 ;;;; Functions
 
-(defun magit-todos--repo-todos (&optional path)
+;; (((:filename . "magit-todos.el")
+;; (:keyword . #("TODO" 0 4 ...))
+;; (:position . 13709)
+;; (:string . #("TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed" 0 4 ... 6 82 ...)))
+;;
+
+;; grep -r -b --with-filename 'TODO:' ./*
+;; rg -b --with-filename --no-heading --no-line-number 'TODO:'
+;; (defun magit-todos--repo-todos (&optional path)
+;;   (list
+;;    (list '(:filename . "magit-todos.el")
+;;          '(:keyword . #("TODO"))
+;;          '(:position . 13709)
+;;          '(:string . #("TODO: Some match term blabla")))))
+
+(defun magit-todos--grep-to-match (grep-match)
+  "Convert GREP-MATCH to the repo-todos format."
+  (let* ((tuples (split-string grep-match ":"))
+         (file-name (replace-regexp-in-string (projectile-project-root) "" (car tuples)))
+         (byte-pos (cadr tuples))
+         (desc (reduce #'concat (cddr tuples))))
+    `((:filename . ,file-name)
+      (:keyword . #("TODO"))
+      (:position . ,byte-pos)
+      (:string . ,desc))))
+
+(defun magit-todos--repo-todos (type &optional path)
+  "Pull in repo TYPE quickly, with optional PATH."
+  (let* ((cmd (format
+               ;; "grep -r -b --with-filename 'TODO\\FIXME' %s"
+               "rg -b --hidden --with-filename --no-heading --no-line-number '%s' %s &"
+               type
+               (projectile-project-root)))
+         (matches (shell-command-to-string cmd))
+         (matches (split-string matches "\n"))
+         (matches (remove-if (lambda (m) (equal "" m)) matches)))
+    (mapcar #'magit-todos--grep-to-match matches)))
+
+(defun xmagit-todos--repo-todos (&optional path)
   "Return to-do items for repo at PATH.
 PATH defaults to `default-directory'."
   (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
@@ -380,9 +418,9 @@ is killed."
             (when kill-buffer
               (kill-buffer))))))))
 
-(defun magit-todos--insert-items ()
-  "Insert to-do items into current buffer."
-  (when-let ((items (magit-todos--repo-todos))
+(defun magit-todos--insert-items-by-type (type)
+  "Insert TYPE to-do items into current buffer."
+  (when-let ((items (magit-todos--repo-todos type))
              (magit-section-show-child-count t)
              (magit-section-set-visibility-hook (cons (with-no-warnings
                                                         (lambda (&rest ignore)
@@ -390,7 +428,7 @@ is killed."
                                                             'hide)))
                                                       magit-section-set-visibility-hook)))
     (magit-insert-section (todos)
-      (magit-insert-heading "TODOs:")
+      (magit-insert-heading (format "  %ss:" type))
       (dolist (item items)
         (-let* (((&alist :filename filename :string string) item)
                 (filename (propertize filename 'face 'magit-filename))
@@ -399,6 +437,12 @@ is killed."
             (insert string)))
         (insert "\n"))
       (insert "\n"))))
+
+(defun magit-todos--insert-items ()
+  "Work across various types."
+  (magit-insert-section (todos)
+    (magit-insert-heading (format "GTDs:"))
+    (mapc #'magit-todos--insert-items-by-type '("TODO" "FIXME"))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
