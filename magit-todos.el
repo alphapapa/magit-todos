@@ -109,6 +109,10 @@ This should be set automatically by customizing
 (defvar magit-todos-ignored-directories nil
   "Automatically set by `magit-todos--repo-todos'.")
 
+(defvar-local magit-todos-active-scan nil
+  "The current scan's process.  Used to avoid running multiple
+  simultaneous scans for a magit-status buffer.")
+
 (defvar magit-todo-section-map
   (let ((m (make-sparse-keymap)))
     (define-key m [remap magit-visit-thing] #'magit-todos--goto-item)
@@ -400,12 +404,20 @@ is killed."
               (kill-buffer))))))))
 
 (defun magit-todos--insert-items ()
-  "Insert to-do items into current buffer."
-  (funcall magit-todos-scan-fn
-           :magit-status-buffer (current-buffer)
-           :directory default-directory
-           :depth magit-todos-depth
-           :timeout magit-todos-ag-timeout))
+  "Insert to-do items into current buffer.
+This function should be called from inside a magit-status buffer."
+  ;; Avoid running multiple scans for a single magit-status buffer.
+  (when magit-todos-active-scan
+    (when (buffer-live-p (process-buffer magit-todos-active-scan))
+      (with-current-buffer (process-buffer magit-todos-active-scan)
+        (delete-process magit-todos-active-scan)
+        (kill-buffer)))
+    (setq magit-todos-active-scan nil))
+  (setq magit-todos-active-scan (funcall magit-todos-scan-fn
+                                         :magit-status-buffer (current-buffer)
+                                         :directory default-directory
+                                         :depth magit-todos-depth
+                                         :timeout magit-todos-ag-timeout)))
 
 (defun magit-todos--insert-items-callback (magit-status-buffer items)
   "Insert to-do items into current buffer."
