@@ -96,8 +96,13 @@ This should be set automatically by customizing
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
+(defvar magit-todos-rg-result-regexp nil
+  "Regular expression for rg results.
+This should be set automatically by customizing
+`mrgit-todos-keywords'.")
+
 (defvar magit-todos-ag-search-regexp nil
-  "Regular expression for ag.
+  "Regular expression for ag (and rg).
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
@@ -168,8 +173,18 @@ regular expression."
                  ;; NOTE: The pcre2el library completely saves us here.  It is fantastic.
                  magit-todos-ag-search-regexp (rxt-elisp-to-pcre magit-todos-search-regexp)
                  magit-todos-ag-result-regexp (rx-to-string `(seq bol
-                                                                  ;; Filename
-                                                                  (group-n 1 (1+ (not (any ":")))) ":"
+                                                                  ;; Line
+                                                                  (group-n 2 (1+ digit)) ";"
+                                                                  ;; Column
+                                                                  (group-n 3 (1+ digit)) " "
+                                                                  (1+ digit) ":"
+                                                                  (minimal-match (0+ not-newline))
+                                                                  ;; Keyword
+                                                                  (group-n 4 (or ,@keywords)) (optional ":")
+                                                                  (optional (1+ blank)
+                                                                            ;; Description
+                                                                            (group-n 5 (1+ not-newline)))))
+                 magit-todos-rg-result-regexp (rx-to-string `(seq bol
                                                                   ;; Line
                                                                   (group-n 2 (1+ digit)) ":"
                                                                   ;; Column
@@ -177,23 +192,27 @@ regular expression."
                                                                   (minimal-match (0+ not-newline))
                                                                   ;; Keyword
                                                                   (group-n 4 (or ,@keywords)) (optional ":")
-                                                                  (1+ blank)
-                                                                  ;; Description
-                                                                  (group-n 5 (1+ not-newline))))))))
+                                                                  (optional (1+ blank)
+                                                                            ;; Description
+                                                                            (group-n 5 (1+ not-newline)))))))))
 
 (defcustom magit-todos-scan-fn nil
   "File scanning method.
-Will attempt to find local utilities (ag) and fallback to
+Will attempt to find local utilities (rg and ag) and fallback to
 scanning from inside Emacs."
+  ;; TODO: Verify that ag version is no too old (e.g. 0.19 doesn't output correctly)
   :type '(choice (const :tag "Automatic" nil)
                  (const :tag "ag" magit-todos--ag-scan)
+                 (const :tag "rg" magit-todos--rg-scan)
                  (const :tag "Emacs" magit-todos--emacs-scan)
                  (function :tag "Custom function"))
   :set (lambda (option value)
          (unless value
            ;; Choosing automatically
-           (setq value (cond ((executable-find "ag")
-                              #'magit-todos--ag-scan)
+           (setq value (cond ((executable-find "rg")
+                              #'magit-todos--rg-scan-async)
+                             ((executable-find "ag")
+                              #'magit-todos--ag-scan-async)
                              (t #'magit-todos--emacs-scan))))
          (set-default option value)))
 
@@ -268,7 +287,7 @@ this in a directory-local variable for certain projects."
   :type '(choice (const :tag "Repo root directory only" 0)
                  integer))
 
-(defcustom magit-ag-timeout 2
+(defcustom magit-todos-ag-timeout 20
   "When scanning with ag, cancel scan after this many seconds.
 In case of accidentally scanning deep into a very large repo,
 this stops ag so the Magit status buffer won't be delayed."
@@ -382,23 +401,42 @@ is killed."
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer."
-  (when-let ((items (magit-todos--repo-todos))
-             (magit-section-show-child-count t)
-             (magit-section-set-visibility-hook (cons (with-no-warnings
-                                                        (lambda (&rest ignore)
-                                                          (when (> (length items) magit-todos-max-items)
-                                                            'hide)))
-                                                      magit-section-set-visibility-hook)))
-    (magit-insert-section (todos)
-      (magit-insert-heading "TODOs:")
-      (dolist (item items)
-        (-let* (((&alist :filename filename :string string) item)
-                (filename (propertize filename 'face 'magit-filename))
-                (string (format "%s %s" filename string)))
-          (magit-insert-section (todo item)
-            (insert string)))
-        (insert "\n"))
-      (insert "\n"))))
+  (funcall magit-todos-scan-fn
+           :magit-status-buffer (current-buffer)
+           :directory default-directory
+           :depth magit-todos-depth
+           :timeout magit-todos-ag-timeout))
+
+(defun magit-todos--insert-items-callback (magit-status-buffer items)
+  "Insert to-do items into current buffer."
+  (setq items (magit-todos--sort items))
+  (unless (buffer-live-p magit-status-buffer)
+    (message "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
+  (with-current-buffer magit-status-buffer
+    (when-let ((magit-section-show-child-count t)
+               (inhibit-read-only t)
+               ;; HACK: "For internal use only."  But this makes collapsing the new section work!
+               ;; FIXME: next/previous section doesn't work correctly with regard to this section.
+               (magit-insert-section--parent magit-root-section))
+      (save-excursion
+        (goto-char (point-min))
+        (cl-loop for ((name . value) root) = (magit-section-ident (magit-current-section))
+                 until (not (or (eq name 'branch)
+                                (eq name 'tag)))
+                 do (magit-section-forward))
+        (magit-insert-section (todos)
+          (magit-insert-heading "TODOs:")
+          (dolist (item items)
+            (-let* (((&alist :filename filename :string string) item)
+                    (filename (propertize filename 'face 'magit-filename))
+                    (string (format "%s %s" filename string)))
+              (magit-insert-section (todo item)
+                (insert string)))
+            (insert "\n"))
+          (insert "\n"))
+        (when (> (length items) magit-todos-max-items)
+          ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
+          (magit-section-hide (magit-get-section '((todos) (status)))))))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
@@ -420,12 +458,17 @@ is killed."
        (-non-nil it)
        (-flatten-n 1 it)))
 
+;;;;; ag
+
+;; TODO: Factor out common code for ag/rg
+;; TODO: Restore Org heading fontification
+
 (defun magit-todos--ag-scan (directory)
   "Return to-dos in DIRECTORY, scanning with ag."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let ((depth (number-to-string magit-todos-depth))
-        (timeout (number-to-string magit-ag-timeout)))
+        (timeout (number-to-string magit-todos-ag-timeout)))
     (with-temp-buffer
       (let ((default-directory directory)
             (stderr-file (make-temp-file "ag-stderr")))
@@ -454,6 +497,121 @@ is killed."
                                                        (match-string 5)))
                        do (forward-line 1)))
           (delete-file stderr-file))))))
+
+(cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth timeout)
+  "Return to-dos in DIRECTORY, scanning with ag."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let ((depth (number-to-string depth))
+        (timeout (number-to-string timeout))
+        (default-directory directory))
+    (async-start-process "ag-scan-async" "nice"
+                         (apply-partially #'magit-todos--ag-scan-async-callback magit-status-buffer)
+                         "-n5"
+                         "timeout" timeout
+                         "ag" "--ackmate" "--depth" depth
+                         magit-todos-ag-search-regexp)))
+
+(defun magit-todos--ag-scan-async-callback (magit-status-buffer process)
+  "Callback for `magit-todos--ag-scan-async'."
+  ;; See <https://github.com/jwiegley/emacs-async/issues/101>
+  (when (= 124 (process-exit-status process))
+    (error "ag timed out.  You may want to increase `magit-todos-ag-timeout'."))
+  (with-current-buffer (process-buffer process)
+    (let (items)
+      (goto-char (point-min))
+      (setq items
+            (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
+                     append (let ((filename (buffer-substring (1+ (point-at-bol)) (point-at-eol))))
+                              (forward-line 1)
+                              (cl-loop while (re-search-forward magit-todos-ag-result-regexp (line-end-position) t)
+                                       ;; TODO: Filter directories from ag
+                                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                                       thereis (s-suffix? suffix filename))
+                                       collect (a-list :filename (save-match-data (f-relative filename default-directory))
+                                                       :line (string-to-number (match-string 2))
+                                                       :column (string-to-number (match-string 3))
+                                                       :keyword (match-string 4)
+                                                       :string (format "%s: %s"
+                                                                       (propertize (match-string 4)
+                                                                                   'face (magit-todos--keyword-face (match-string 4)))
+                                                                       (match-string 5)))
+                                       do (forward-line 1)))
+                     do (forward-line 1)))
+      (unless items
+        (error "AGH"))
+      (magit-todos--insert-items-callback magit-status-buffer items))))
+
+;;;;; rg
+
+(defun magit-todos--async-start-process (name program finish-func &rest program-args)
+  "Start the executable PROGRAM asynchronously.  See `async-start'.
+PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
+process object when done.  If FINISH-FUNC is nil, the future
+object will return the process object when the program is
+finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
+working directory.
+
+This is a copy of `async-start-process' that does not override
+`process-connection-type'."
+  ;; TODO: Drop this function when possible.  See
+  ;; <https://github.com/jwiegley/emacs-async/issues/102>.
+  (let* ((buf (generate-new-buffer (concat "*" name "*")))
+         (proc (apply #'start-process name buf program program-args)))
+    (with-current-buffer buf
+      (set (make-local-variable 'async-callback) finish-func)
+      (set-process-sentinel proc #'async-when-done)
+      (unless (string= name "emacs")
+        (set (make-local-variable 'async-callback-for-process) t))
+      proc)))
+
+(cl-defun magit-todos--rg-scan-async (&key magit-status-buffer directory depth timeout)
+  "Return to-dos in DIRECTORY, scanning with rg."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let ((depth (number-to-string depth))
+        (timeout (number-to-string timeout))
+        (default-directory directory)
+        (process-connection-type 'pty))
+    (magit-todos--async-start-process "rg-scan-async" "nice"
+                                      (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer)
+                                      "-n5"
+                                      ;; FIXME: Restore use of timeout when async.el issue is
+                                      ;;  resolved.  See
+                                      ;;  <https://github.com/jwiegley/emacs-async/issues/101>.
+                                      ;;  "timeout" timeout
+                                      "rg" "--column"
+                                      magit-todos-ag-search-regexp)))
+
+(defun magit-todos--rg-scan-async-callback (magit-status-buffer process)
+  "Callback for `magit-todos--rg-scan-async'."
+  ;; See <https://github.com/jwiegley/emacs-async/issues/101>
+  (when (= 124 (process-exit-status process))
+    (error "rg timed out.  You may want to increase `magit-todos-rg-timeout'"))
+  (with-current-buffer (process-buffer process)
+    (let (items)
+      (goto-char (point-min))
+      (setq items
+            (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
+                     append (let ((filename (buffer-substring (point-at-bol) (point-at-eol))))
+                              (forward-line 1)
+                              (cl-loop while (re-search-forward magit-todos-rg-result-regexp (line-end-position) t)
+                                       ;; TODO: Filter directories from rg
+                                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                                       thereis (s-suffix? suffix filename))
+                                       collect (a-list :filename (save-match-data (f-relative filename default-directory))
+                                                       :line (string-to-number (match-string 2))
+                                                       :column (string-to-number (match-string 3))
+                                                       :keyword (match-string 4)
+                                                       :string (format "%s: %s"
+                                                                       (propertize (match-string 4)
+                                                                                   'face (magit-todos--keyword-face (match-string 4)))
+                                                                       (or (match-string 5) "")))
+                                       do (forward-line 1)))
+                     do (forward-line 1)))
+      (unless items
+        (error "ARGH"))
+      (magit-todos--insert-items-callback magit-status-buffer items))))
 
 ;;;;; Sorting
 
