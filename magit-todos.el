@@ -408,10 +408,11 @@ is killed."
 This function should be called from inside a magit-status buffer."
   ;; Avoid running multiple scans for a single magit-status buffer.
   (when magit-todos-active-scan
-    (when (buffer-live-p (process-buffer magit-todos-active-scan))
-      (with-current-buffer (process-buffer magit-todos-active-scan)
-        (delete-process magit-todos-active-scan)
-        (kill-buffer)))
+    (let ((buffer (process-buffer magit-todos-active-scan)))
+      (when (process-live-p magit-todos-active-scan)
+        (delete-process magit-todos-active-scan))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))
     (setq magit-todos-active-scan nil))
   (setq magit-todos-active-scan (funcall magit-todos-scan-fn
                                          :magit-status-buffer (current-buffer)
