@@ -430,6 +430,7 @@ This function should be called from inside a magit-status buffer."
                  (inhibit-read-only t)
                  ;; HACK: "For internal use only."  But this makes collapsing the new section work!
                  ;; FIXME: next/previous section doesn't work correctly with regard to this section.
+                 ;; FIXME: Try to make section visibility cache work for this section.
                  (magit-insert-section--parent magit-root-section)
                  (width (window-text-width)))
         (save-excursion
