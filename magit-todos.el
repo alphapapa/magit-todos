@@ -423,31 +423,31 @@ This function should be called from inside a magit-status buffer."
 (defun magit-todos--insert-items-callback (magit-status-buffer items)
   "Insert to-do items into current buffer."
   (setq items (magit-todos--sort items))
-  (unless (buffer-live-p magit-status-buffer)
-    (message "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
-  (with-current-buffer magit-status-buffer
-    (when-let ((magit-section-show-child-count t)
-               (inhibit-read-only t)
-               ;; HACK: "For internal use only."  But this makes collapsing the new section work!
-               ;; FIXME: next/previous section doesn't work correctly with regard to this section.
-               (magit-insert-section--parent magit-root-section)
-               (width (window-text-width)))
-      (save-excursion
-        (goto-char (point-max))
-        (magit-insert-section (todos)
-          (magit-insert-heading "TODOs:")
-          (dolist (item items)
-            (-let* (((&alist :filename filename :string string) item)
-                    (filename (propertize filename 'face 'magit-filename))
-                    (string (truncate-string-to-width (format "%s %s" filename string)
-                                                      width)))
-              (magit-insert-section (todo item)
-                (insert string)))
+  (if (not (buffer-live-p magit-status-buffer))
+      (message "`magit-todos--insert-items-callback': Callback called for deleted buffer")
+    (with-current-buffer magit-status-buffer
+      (when-let ((magit-section-show-child-count t)
+                 (inhibit-read-only t)
+                 ;; HACK: "For internal use only."  But this makes collapsing the new section work!
+                 ;; FIXME: next/previous section doesn't work correctly with regard to this section.
+                 (magit-insert-section--parent magit-root-section)
+                 (width (window-text-width)))
+        (save-excursion
+          (goto-char (point-max))
+          (magit-insert-section (todos)
+            (magit-insert-heading "TODOs:")
+            (dolist (item items)
+              (-let* (((&alist :filename filename :string string) item)
+                      (filename (propertize filename 'face 'magit-filename))
+                      (string (truncate-string-to-width (format "%s %s" filename string)
+                                                        width)))
+                (magit-insert-section (todo item)
+                  (insert string)))
+              (insert "\n"))
             (insert "\n"))
-          (insert "\n"))
-        (when (> (length items) magit-todos-max-items)
-          ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
-          (magit-section-hide (magit-get-section '((todos) (status)))))))))
+          (when (> (length items) magit-todos-max-items)
+            ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
+            (magit-section-hide (magit-get-section '((todos) (status))))))))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
@@ -590,7 +590,9 @@ This is a copy of `async-start-process' that does not override
                                       ;;  resolved.  See
                                       ;;  <https://github.com/jwiegley/emacs-async/issues/101>.
                                       ;;  "timeout" timeout
-                                      "rg" "--column" magit-todos-ag-search-regexp directory)))
+                                      ;; rg requires a minimum depth of 1 to search directories
+                                      "rg" "--column" "--maxdepth" (number-to-string (1+ magit-todos-depth))
+                                      magit-todos-ag-search-regexp directory)))
 
 (defun magit-todos--rg-scan-async-callback (magit-status-buffer process)
   "Callback for `magit-todos--rg-scan-async'."
