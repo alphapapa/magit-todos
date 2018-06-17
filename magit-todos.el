@@ -583,8 +583,7 @@ This is a copy of `async-start-process' that does not override
   ;; capture them and pass them in.
   (let ((depth (number-to-string depth))
         (timeout (number-to-string timeout))
-        (default-directory directory)
-        (process-connection-type 'pty))
+        (process-connection-type 'pipe))
     (magit-todos--async-start-process "rg-scan-async" "nice"
                                       (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer)
                                       "-n5"
@@ -592,8 +591,7 @@ This is a copy of `async-start-process' that does not override
                                       ;;  resolved.  See
                                       ;;  <https://github.com/jwiegley/emacs-async/issues/101>.
                                       ;;  "timeout" timeout
-                                      "rg" "--column"
-                                      magit-todos-ag-search-regexp)))
+                                      "rg" "--column" magit-todos-ag-search-regexp directory)))
 
 (defun magit-todos--rg-scan-async-callback (magit-status-buffer process)
   "Callback for `magit-todos--rg-scan-async'."
