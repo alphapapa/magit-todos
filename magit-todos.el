@@ -406,8 +406,8 @@ is killed."
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer.
 This function should be called from inside a magit-status buffer."
-  ;; Avoid running multiple scans for a single magit-status buffer.
   (when magit-todos-active-scan
+    ;; Avoid running multiple scans for a single magit-status buffer.
     (let ((buffer (process-buffer magit-todos-active-scan)))
       (when (process-live-p magit-todos-active-scan)
         (delete-process magit-todos-active-scan))
