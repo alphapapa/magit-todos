@@ -430,7 +430,8 @@ This function should be called from inside a magit-status buffer."
                (inhibit-read-only t)
                ;; HACK: "For internal use only."  But this makes collapsing the new section work!
                ;; FIXME: next/previous section doesn't work correctly with regard to this section.
-               (magit-insert-section--parent magit-root-section))
+               (magit-insert-section--parent magit-root-section)
+               (width (window-text-width)))
       (save-excursion
         (goto-char (point-max))
         (magit-insert-section (todos)
@@ -438,7 +439,8 @@ This function should be called from inside a magit-status buffer."
           (dolist (item items)
             (-let* (((&alist :filename filename :string string) item)
                     (filename (propertize filename 'face 'magit-filename))
-                    (string (format "%s %s" filename string)))
+                    (string (truncate-string-to-width (format "%s %s" filename string)
+                                                      width)))
               (magit-insert-section (todo item)
                 (insert string)))
             (insert "\n"))
