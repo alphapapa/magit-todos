@@ -431,11 +431,7 @@ This function should be called from inside a magit-status buffer."
                ;; FIXME: next/previous section doesn't work correctly with regard to this section.
                (magit-insert-section--parent magit-root-section))
       (save-excursion
-        (goto-char (point-min))
-        (cl-loop for ((name . value) root) = (magit-section-ident (magit-current-section))
-                 until (not (or (eq name 'branch)
-                                (eq name 'tag)))
-                 do (magit-section-forward))
+        (goto-char (point-max))
         (magit-insert-section (todos)
           (magit-insert-heading "TODOs:")
           (dolist (item items)
