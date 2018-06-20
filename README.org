@@ -46,7 +46,6 @@ Install these required packages:
 -  =dash=
 -  =f=
 -  =hl-todo=
--  =kv=
 -  =magit=
 -  =pcre2el=
 

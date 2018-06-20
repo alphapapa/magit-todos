@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 0.1-pre
-;; Package-Requires: ((emacs "25.2") (a) (anaphora) (dash) (f) (hl-todo) (kv) (magit) (pcre2el))
+;; Package-Requires: ((emacs "25.2") (a) (anaphora) (dash) (f) (hl-todo) (magit) (pcre2el))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -29,7 +29,6 @@
 ;; dash
 ;; f
 ;; hl-todo
-;; kv
 ;; magit
 ;; pcre2el
 
@@ -77,7 +76,6 @@
 (require 'dash)
 (require 'f)
 (require 'hl-todo)
-(require 'kv)
 (require 'magit)
 (require 'pcre2el)
 
