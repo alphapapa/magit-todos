@@ -368,13 +368,11 @@ PATH defaults to `default-directory'."
 (defun magit-todos--filter-files (files)
   "Return FILES without ignored ones.
 FILES should be a list of files, already flattened."
-  (--> files
-       (--remove (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                          thereis (s-suffix? suffix it))
-                 it)
-       (--remove (cl-loop for dir in magit-todos-ignored-directories
-                          thereis (string= dir (f-base it)))
-                 it)))
+  (--remove (or (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                         thereis (s-suffix? suffix it))
+                (cl-loop for dir in magit-todos-ignored-directories
+                         thereis (string= dir (f-base it))))
+            files))
 
 (defun magit-todos--file-todos (file)
   "Return to-do items for FILE.
