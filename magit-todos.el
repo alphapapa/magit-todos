@@ -207,8 +207,8 @@ Will attempt to find local utilities (rg and ag) and fallback to
 scanning from inside Emacs."
   ;; TODO: Verify that ag version is no too old (e.g. 0.19 doesn't output correctly)
   :type '(choice (const :tag "Automatic" nil)
-                 (const :tag "ag" magit-todos--ag-scan)
-                 (const :tag "rg" magit-todos--rg-scan)
+                 (const :tag "ag" magit-todos--ag-scan-async)
+                 (const :tag "rg" magit-todos--rg-scan-async)
                  (const :tag "Emacs" magit-todos--emacs-scan)
                  (function :tag "Custom function"))
   :set (lambda (option value)
@@ -292,11 +292,15 @@ this in a directory-local variable for certain projects."
   :type '(choice (const :tag "Repo root directory only" 0)
                  integer))
 
-(defcustom magit-todos-ag-timeout 20
-  "When scanning with ag, cancel scan after this many seconds.
+(defcustom magit-todos-async-timeout 20
+  "When scanning with ag or rg, cancel scan after this many seconds.
 In case of accidentally scanning deep into a very large repo,
 this stops ag so the Magit status buffer won't be delayed."
   :type 'integer)
+
+(defcustom magit-todos-nice t
+  "Run scanner with \"nice\"."
+  :type 'boolean)
 
 ;;;; Commands
 
@@ -419,7 +423,7 @@ This function should be called from inside a magit-status buffer."
                                          :magit-status-buffer (current-buffer)
                                          :directory default-directory
                                          :depth magit-todos-depth
-                                         :timeout magit-todos-ag-timeout)))
+                                         :timeout magit-todos-async-timeout)))
 
 (defun magit-todos--insert-items-callback (magit-status-buffer items)
   "Insert to-do items into current buffer."
@@ -481,7 +485,7 @@ This function should be called from inside a magit-status buffer."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let ((depth (number-to-string magit-todos-depth))
-        (timeout (number-to-string magit-todos-ag-timeout)))
+        (timeout (number-to-string magit-todos-async-timeout)))
     (with-temp-buffer
       (let ((default-directory directory)
             (stderr-file (make-temp-file "ag-stderr")))
@@ -515,21 +519,22 @@ This function should be called from inside a magit-status buffer."
   "Return to-dos in DIRECTORY, scanning with ag."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let ((depth (number-to-string depth))
-        (timeout (number-to-string timeout))
-        (default-directory directory))
-    (async-start-process "ag-scan-async" "nice"
-                         (apply-partially #'magit-todos--ag-scan-async-callback magit-status-buffer)
-                         "-n5"
-                         "timeout" timeout
-                         "ag" "--ackmate" "--depth" depth
-                         magit-todos-ag-search-regexp)))
+  (let* ((depth (number-to-string (1+ depth)))
+         (timeout (number-to-string timeout))
+         (process-connection-type 'pipe)
+         (command (list "ag" "--ackmate" "--depth" depth
+                        magit-todos-ag-search-regexp directory)))
+    (when magit-todos-nice
+      (setq command (append (list "nice" "-n5") command)))
+    (magit-todos--async-start-process "magit-todos--ag-scan-async"
+      :command command
+      :finish-func (apply-partially #'magit-todos--ag-scan-async-callback magit-status-buffer))))
 
 (defun magit-todos--ag-scan-async-callback (magit-status-buffer process)
   "Callback for `magit-todos--ag-scan-async'."
   ;; See <https://github.com/jwiegley/emacs-async/issues/101>
   (when (= 124 (process-exit-status process))
-    (error "ag timed out.  You may want to increase `magit-todos-ag-timeout'."))
+    (error "ag timed out.  You may want to increase `magit-todos-async-timeout'."))
   (with-current-buffer (process-buffer process)
     (let (items)
       (goto-char (point-min))
@@ -557,7 +562,7 @@ This function should be called from inside a magit-status buffer."
 
 ;;;;; rg
 
-(defun magit-todos--async-start-process (name program finish-func &rest program-args)
+(cl-defun magit-todos--async-start-process (name &key command finish-func)
   "Start the executable PROGRAM asynchronously.  See `async-start'.
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
@@ -566,11 +571,14 @@ finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
 working directory.
 
 This is a copy of `async-start-process' that does not override
-`process-connection-type'."
+`process-connection-type'.  It also uses keyword arguments."
+  (declare (indent defun))
   ;; TODO: Drop this function when possible.  See
   ;; <https://github.com/jwiegley/emacs-async/issues/102>.
-  (let* ((buf (generate-new-buffer (concat "*" name "*")))
-         (proc (apply #'start-process name buf program program-args)))
+  (let* ((args (cdr command))
+         (command (car command))
+         (buf (generate-new-buffer (concat "*" name "*")))
+         (proc (apply #'start-process name buf command args)))
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
       (set-process-sentinel proc #'async-when-done)
@@ -582,19 +590,16 @@ This is a copy of `async-start-process' that does not override
   "Return to-dos in DIRECTORY, scanning with rg."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let ((depth (number-to-string depth))
-        (timeout (number-to-string timeout))
-        (process-connection-type 'pipe))
-    (magit-todos--async-start-process "rg-scan-async" "nice"
-                                      (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer)
-                                      "-n5"
-                                      ;; FIXME: Restore use of timeout when async.el issue is
-                                      ;;  resolved.  See
-                                      ;;  <https://github.com/jwiegley/emacs-async/issues/101>.
-                                      ;;  "timeout" timeout
-                                      ;; rg requires a minimum depth of 1 to search directories
-                                      "rg" "--column" "--maxdepth" (number-to-string (1+ magit-todos-depth))
-                                      magit-todos-ag-search-regexp directory)))
+  (let* ((depth (number-to-string (1+ depth)))
+         (timeout (number-to-string timeout))
+         (process-connection-type 'pipe)
+         (command (list "rg" "--column" "--maxdepth" depth
+                        magit-todos-ag-search-regexp directory)))
+    (when magit-todos-nice
+      (setq command (append (list "nice" "-n5") command)))
+    (magit-todos--async-start-process "magit-todos--rg-scan-async"
+      :command command
+      :finish-func (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer))))
 
 (defun magit-todos--rg-scan-async-callback (magit-status-buffer process)
   "Callback for `magit-todos--rg-scan-async'."
