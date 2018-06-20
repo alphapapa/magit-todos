@@ -300,7 +300,7 @@ this stops ag so the Magit status buffer won't be delayed."
   "Run scanner with \"nice\"."
   :type 'boolean)
 
-(defcustom magit-todos-insert-after 'bottom
+(defcustom magit-todos-insert-at 'bottom
   "Insert the to-dos section after this section in the Magit status buffer.
 Specific sections may be chosen, using the first symbol returned
 by evaluating \"(magit-section-ident (magit-current-section))\"
@@ -310,8 +310,8 @@ may not work exactly as desired when the built-in scanner is
 used."
   :type '(choice (const :tag "Top" top)
                  (const :tag "Bottom" bottom)
-                 (const :tag "Untracked" untracked)
-                 (const :tag "Unstaged" unstaged)
+                 (const :tag "After untracked files" untracked)
+                 (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
 
 (defcustom magit-todos-ag-args nil
@@ -464,13 +464,13 @@ This function should be called from inside a ‘magit-status’ buffer."
                  (width (window-text-width)))
         (save-excursion
           (goto-char (point-min))
-          (pcase magit-todos-insert-after
+          (pcase magit-todos-insert-at
             ('top (cl-loop for this-section = (caar (magit-section-ident (magit-current-section)))
                            until (not (or (equal this-section 'branch)
                                           (equal this-section 'tags)))
                            do (magit-section-forward)))
             ('bottom (goto-char (point-max)))
-            (_ (magit-todos--skip-section (vector '* magit-todos-insert-after))))
+            (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
           (magit-insert-section (todos)
             (magit-insert-heading "TODOs:")
             (dolist (item items)
