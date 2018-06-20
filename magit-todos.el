@@ -316,6 +316,14 @@ used."
                  (const :tag "Unstaged" unstaged)
                  (symbol :tag "After selected section")))
 
+(defcustom magit-todos-ag-args nil
+  "Extra arguments to pass to ag."
+  :type '(repeat string))
+
+(defcustom magit-todos-rg-args nil
+  "Extra arguments to pass to rg."
+  :type '(repeat string))
+
 ;;;; Commands
 
 ;;;###autoload
@@ -527,8 +535,11 @@ See `magit-section-match'."
   (let* ((depth (number-to-string (1+ depth)))
          (timeout (number-to-string timeout))
          (process-connection-type 'pipe)
-         (command (list "ag" "--ackmate" "--depth" depth
+         (command (list "--ackmate" "--depth" depth
                         magit-todos-ag-search-regexp directory)))
+    (when magit-todos-ag-args
+      (setq command (append magit-todos-ag-args command)))
+    (push "ag" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
     (magit-todos--async-start-process "magit-todos--ag-scan-async"
@@ -598,8 +609,11 @@ This is a copy of `async-start-process' that does not override
   (let* ((depth (number-to-string (1+ depth)))
          (timeout (number-to-string timeout))
          (process-connection-type 'pipe)
-         (command (list "rg" "--column" "--maxdepth" depth
+         (command (list "--column" "--maxdepth" depth
                         magit-todos-ag-search-regexp directory)))
+    (when magit-todos-rg-args
+      (setq command (append magit-todos-rg-args command)))
+    (push "rg" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
     (magit-todos--async-start-process "magit-todos--rg-scan-async"
