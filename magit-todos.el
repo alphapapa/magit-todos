@@ -520,41 +520,6 @@ See `magit-section-match'."
 ;; TODO: Factor out common code for ag/rg
 ;; TODO: Restore Org heading fontification
 
-(defun magit-todos--ag-scan (directory)
-  "Return to-dos in DIRECTORY, scanning with ag."
-  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
-  ;; capture them and pass them in.
-  (let ((depth (number-to-string magit-todos-depth))
-        (timeout (number-to-string magit-todos-async-timeout)))
-    (with-temp-buffer
-      (let ((default-directory directory)
-            (stderr-file (make-temp-file "ag-stderr")))
-        (unwind-protect
-            (progn
-              (erase-buffer)
-              (let ((exit-code (call-process "nice" nil (list t stderr-file) nil "-n5"
-                                             "timeout" timeout
-                                             "ag" "--nocolor" "--column"
-                                             "--depth" depth
-                                             magit-todos-ag-search-regexp)))
-                (unless (zerop exit-code)
-                  (message (format "(magit-todos) ag exited non-zero: %s: %s" exit-code (f-read stderr-file)))))
-              (goto-char (point-min))
-              (cl-loop while (re-search-forward magit-todos-ag-result-regexp nil t)
-                       ;; TODO: Filter directories from ag
-                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                                       thereis (s-suffix? suffix (match-string 1)))
-                       collect (a-list :filename (match-string 1)
-                                       :line (string-to-number (match-string 2))
-                                       :column (string-to-number (match-string 3))
-                                       :keyword (match-string 4)
-                                       :string (format "%s: %s"
-                                                       (propertize (match-string 4)
-                                                                   'face (magit-todos--keyword-face (match-string 4)))
-                                                       (match-string 5)))
-                       do (forward-line 1)))
-          (delete-file stderr-file))))))
-
 (cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth timeout)
   "Return to-dos in DIRECTORY, scanning with ag."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
