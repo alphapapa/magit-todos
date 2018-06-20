@@ -361,8 +361,11 @@ If FILE is not being visited, it is visited and then its buffer
 is killed."
   (cl-symbol-macrolet ((position (match-beginning 0))
                        (org-level (match-string 1))
-                       (keyword (match-string 2))
-                       (description (or (match-string 3) "")))
+                       (keyword (or (match-string 2)
+                                    (match-string 5)))
+                       (description (or (match-string 3)
+                                        (match-string 6)
+                                        "")))
     (let ((case-fold-search magit-todos-ignore-case)
           (string-fn (lambda ()
                        (format "%s: %s"
@@ -467,13 +470,14 @@ This function should be called from inside a magit-status buffer."
 
 ;;;;; Directory scanning
 
-(defun magit-todos--emacs-scan (directory)
+(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory depth timeout)
   "Return to-dos in DIRECTORY, scanning from inside Emacs."
   (--> (funcall magit-todos-internal-scan-files-fn directory)
        (magit-todos--filter-files it)
        (-map #'magit-todos--file-todos it)
        (-non-nil it)
-       (-flatten-n 1 it)))
+       (-flatten-n 1 it)
+       (magit-todos--insert-items-callback magit-status-buffer it)))
 
 ;;;;; ag
 
