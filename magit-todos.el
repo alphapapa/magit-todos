@@ -327,6 +327,7 @@ used."
 ;;;###autoload
 (define-minor-mode magit-todos-mode
   "Show list of to-do items in Magit status buffer for tracked files in repo."
+  :require 'magit-todos
   :group 'magit-todos
   :global t
   (if magit-todos-mode
