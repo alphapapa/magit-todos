@@ -302,6 +302,20 @@ this stops ag so the Magit status buffer won't be delayed."
   "Run scanner with \"nice\"."
   :type 'boolean)
 
+(defcustom magit-todos-insert-after 'bottom
+  "Insert the to-dos section after this section in the Magit status buffer.
+Specific sections may be chosen, using the first symbol returned
+by evaluating \"(magit-section-ident (magit-current-section))\"
+in the status buffer with point on the desired section,
+e.g. `recent' for the \"Recent commits\" section.  Note that this
+may not work exactly as desired when the built-in scanner is
+used."
+  :type '(choice (const :tag "Top" top)
+                 (const :tag "Bottom" bottom)
+                 (const :tag "Untracked" untracked)
+                 (const :tag "Unstaged" unstaged)
+                 (symbol :tag "After selected section")))
+
 ;;;; Commands
 
 ;;;###autoload
@@ -442,7 +456,14 @@ This function should be called from inside a magit-status buffer."
                  (magit-insert-section--parent magit-root-section)
                  (width (window-text-width)))
         (save-excursion
-          (goto-char (point-max))
+          (goto-char (point-min))
+          (pcase magit-todos-insert-after
+            ('top (cl-loop for this-section = (caar (magit-section-ident (magit-current-section)))
+                           until (not (or (equal this-section 'branch)
+                                          (equal this-section 'tags)))
+                           do (magit-section-forward)))
+            ('bottom (goto-char (point-max)))
+            (t (magit-todos--skip-section (vector '* magit-todos-insert-after))))
           (magit-insert-section (todos)
             (magit-insert-heading "TODOs:")
             (dolist (item items)
@@ -457,6 +478,21 @@ This function should be called from inside a magit-status buffer."
           (when (> (length items) magit-todos-max-items)
             ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
             (magit-section-hide (magit-get-section '((todos) (status))))))))))
+
+(defun magit-todos--skip-section (condition)
+  "Move past the section matching CONDITION.
+See `magit-section-match'."
+  (goto-char (point-min))
+  (ignore-errors
+    ;; `magit-section-forward' raises an error when there are no more sections.
+    (cl-loop until (magit-section-match condition)
+             do (magit-section-forward))
+    (cl-loop until (not (magit-section-match condition))
+             do (condition-case nil
+                    (magit-section-forward)
+                  (error (progn
+                           (goto-char (1- (point-max)))
+                           (cl-return)))))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
