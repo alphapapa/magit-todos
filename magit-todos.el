@@ -31,6 +31,7 @@
 ;; hl-todo
 ;; kv
 ;; magit
+;; pcre2el
 
 ;; Then put this file in your load-path, and put this in your init file:
 
