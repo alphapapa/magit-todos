@@ -471,7 +471,7 @@ This function should be called from inside a magit-status buffer."
                                           (equal this-section 'tags)))
                            do (magit-section-forward)))
             ('bottom (goto-char (point-max)))
-            (t (magit-todos--skip-section (vector '* magit-todos-insert-after))))
+            (_ (magit-todos--skip-section (vector '* magit-todos-insert-after))))
           (magit-insert-section (todos)
             (magit-insert-heading "TODOs:")
             (dolist (item items)
@@ -514,7 +514,7 @@ See `magit-section-match'."
 
 ;;;;; Directory scanning
 
-(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory depth timeout)
+(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory _depth _timeout)
   "Return to-dos in DIRECTORY, scanning from inside Emacs."
   (--> (funcall magit-todos-internal-scan-files-fn directory)
        (magit-todos--filter-files it)
@@ -528,12 +528,11 @@ See `magit-section-match'."
 ;; TODO: Factor out common code for ag/rg
 ;; TODO: Restore Org heading fontification
 
-(cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth timeout)
+(cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth _timeout)
   "Return to-dos in DIRECTORY, scanning with ag."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let* ((depth (number-to-string (1+ depth)))
-         (timeout (number-to-string timeout))
          (process-connection-type 'pipe)
          (command (list "--ackmate" "--depth" depth
                         magit-todos-ag-search-regexp directory)))
@@ -602,12 +601,11 @@ This is a copy of `async-start-process' that does not override
         (set (make-local-variable 'async-callback-for-process) t))
       proc)))
 
-(cl-defun magit-todos--rg-scan-async (&key magit-status-buffer directory depth timeout)
+(cl-defun magit-todos--rg-scan-async (&key magit-status-buffer directory depth _timeout)
   "Return to-dos in DIRECTORY, scanning with rg."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let* ((depth (number-to-string (1+ depth)))
-         (timeout (number-to-string timeout))
          (process-connection-type 'pipe)
          (command (list "--column" "--maxdepth" depth
                         magit-todos-ag-search-regexp directory)))
