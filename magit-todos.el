@@ -434,7 +434,7 @@ is killed."
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer.
-This function should be called from inside a magit-status buffer."
+This function should be called from inside a ‘magit-status’ buffer."
   (when magit-todos-active-scan
     ;; Avoid running multiple scans for a single magit-status buffer.
     (let ((buffer (process-buffer magit-todos-active-scan)))
@@ -450,7 +450,7 @@ This function should be called from inside a magit-status buffer."
                                          :timeout magit-todos-async-timeout)))
 
 (defun magit-todos--insert-items-callback (magit-status-buffer items)
-  "Insert to-do items into current buffer."
+  "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
   (setq items (magit-todos--sort items))
   (if (not (buffer-live-p magit-status-buffer))
       (message "`magit-todos--insert-items-callback': Callback called for deleted buffer")
