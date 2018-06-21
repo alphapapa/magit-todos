@@ -219,7 +219,6 @@ regular expression."
   "File scanning method.
 Will attempt to find local utilities (rg and ag) and fallback to
 scanning from inside Emacs."
-  ;; TODO: Verify that ag version is no too old (e.g. 0.19 doesn't output correctly)
   :type '(choice (const :tag "Automatic" nil)
                  (const :tag "ag" magit-todos--ag-scan-async)
                  (const :tag "rg" magit-todos--rg-scan-async)
