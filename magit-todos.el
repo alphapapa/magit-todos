@@ -475,7 +475,6 @@ This function should be called from inside a ‘magit-status’ buffer."
                  (inhibit-read-only t)
                  ;; HACK: "For internal use only."  But this makes collapsing the new section work!
                  ;; FIXME: next/previous section doesn't work correctly with regard to this section.
-                 ;; FIXME: Try to make section visibility cache work for this section.
                  (magit-insert-section--parent magit-root-section)
                  (width (window-text-width)))
         (save-excursion
@@ -487,20 +486,25 @@ This function should be called from inside a ‘magit-status’ buffer."
                            do (magit-section-forward)))
             ('bottom (goto-char (point-max)))
             (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
-          (magit-insert-section (todos)
-            (magit-insert-heading "TODOs:")
-            (dolist (item items)
-              (-let* (((&alist :filename filename :string string) item)
-                      (filename (propertize filename 'face 'magit-filename))
-                      (string (truncate-string-to-width (format "%s %s" filename string)
-                                                        width)))
-                (magit-insert-section (todo item)
-                  (insert string)))
-              (insert "\n"))
-            (insert "\n"))
-          (when (> (length items) magit-todos-max-items)
-            ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
-            (magit-section-hide (magit-get-section '((todos) (status))))))))))
+          (let ((section (magit-insert-section (todos)
+                           (magit-insert-heading "TODOs:")
+                           (dolist (item items)
+                             (-let* (((&alist :filename filename :string string) item)
+                                     (filename (propertize filename 'face 'magit-filename))
+                                     (string (truncate-string-to-width (format "%s %s" filename string)
+                                                                       width)))
+                               (magit-insert-section (todo item)
+                                 (insert string)))
+                             (insert "\n"))
+                           (insert "\n"))))
+            (pcase (magit-section-cached-visibility section)
+              ('hide (magit-section-hide section))
+              ('show (magit-section-show section))
+              (_ (if (> (length items) magit-todos-max-items)
+                     ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
+                     (magit-section-hide section)
+                   ;; Not hidden: set slot manually (necessary for some reason)
+                   (oset section hidden nil))))))))))
 
 (defun magit-todos--skip-section (condition)
   "Move past the section matching CONDITION.
