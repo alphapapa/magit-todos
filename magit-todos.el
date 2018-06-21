@@ -90,6 +90,11 @@ Set automatically by `magit-todos-keywords' customization.")
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
+(defvar magit-todos-grep-result-regexp nil
+  "Regular expression for grep results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
 (defvar magit-todos-ag-result-regexp nil
   "Regular expression for ag results.
 This should be set automatically by customizing
@@ -175,6 +180,17 @@ regular expression."
                                                                           (group (1+ not-newline))))))
                  ;; NOTE: The pcre2el library completely saves us here.  It is fantastic.
                  magit-todos-ag-search-regexp (rxt-elisp-to-pcre magit-todos-search-regexp)
+                 magit-todos-grep-result-regexp (rx-to-string `(seq bol
+                                                                    ;; Filename
+                                                                    (group-n 1 (1+ (not (any ":")))) ":"
+                                                                    ;; Position
+                                                                    (group-n 2 (1+ digit)) ":"
+                                                                    (minimal-match (0+ not-newline))
+                                                                    ;; Keyword
+                                                                    (group-n 4 (or ,@keywords)) (optional ":")
+                                                                    (optional (1+ blank)
+                                                                              ;; Description
+                                                                              (group-n 5 (1+ not-newline)))))
                  magit-todos-ag-result-regexp (rx-to-string `(seq bol
                                                                   ;; Line
                                                                   (group-n 2 (1+ digit)) ";"
@@ -207,6 +223,7 @@ scanning from inside Emacs."
   :type '(choice (const :tag "Automatic" nil)
                  (const :tag "ag" magit-todos--ag-scan-async)
                  (const :tag "rg" magit-todos--rg-scan-async)
+                 (const :tag "find-grep" magit-todos--grep-scan-async)
                  (const :tag "Emacs" magit-todos--emacs-scan)
                  (function :tag "Custom function"))
   :set (lambda (option value)
@@ -216,6 +233,8 @@ scanning from inside Emacs."
                               #'magit-todos--rg-scan-async)
                              ((executable-find "ag")
                               #'magit-todos--ag-scan-async)
+                             ((string-match (rx "-P, --perl-regexp") (shell-command-to-string "grep --help"))
+                              #'magit-todos--grep-scan-async)
                              (t #'magit-todos--emacs-scan))))
          (set-default option value)))
 
@@ -519,6 +538,81 @@ See `magit-section-match'."
        (-non-nil it)
        (-flatten-n 1 it)
        (magit-todos--insert-items-callback magit-status-buffer it)))
+
+;;;;; grep
+
+(cl-defun magit-todos--grep-scan-async (&key magit-status-buffer directory depth _timeout)
+  "Return to-dos in DIRECTORY, scanning with grep."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let* ((depth (number-to-string (1+ depth)))
+         (process-connection-type 'pipe)
+         (grep-find-template (->> grep-find-template
+                                  (s-replace " <D> "
+                                             (concat " <D> -maxdepth " depth " "))
+                                  (s-replace " grep " " grep -b -E ")
+                                  (s-replace " -nH " " -H ")))
+         ;; Modified from `rgrep-default-command'
+         (command (-flatten
+                   (append (list "find" directory)
+                           (-non-nil (list (when grep-find-ignored-directories
+                                             (list "-type" "d"
+                                                   "(" "-path"
+                                                   (-interpose (list "-o" "-path")
+                                                               (-non-nil (--map (cond ((stringp it)
+                                                                                       (concat "*/" it))
+                                                                                      ((consp it)
+                                                                                       (and (funcall (car it) dir)
+                                                                                            (concat "*/" (cdr it)))))
+                                                                                grep-find-ignored-directories)))
+                                                   ")" "-prune"))
+                                           (when grep-find-ignored-files
+                                             (list "-o" "-type" "f"
+                                                   "(" "-name"
+                                                   (-interpose (list "-o" "-name")
+                                                               (--map (cond ((stringp it) it)
+                                                                            ((consp it) (and (funcall (car it) dir)
+                                                                                             (cdr it))))
+                                                                      grep-find-ignored-files))
+                                                   ")" "-prune"))))
+                           (list "-o" "-type" "f")
+                           ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
+                           ;; Perl-compatible regular expression (PCRE).  This is highly
+                           ;; experimental and grep -P may warn of unimplemented features."  But it
+                           ;; does seem to work properly, at least on GNU grep.  Using "grep -E"
+                           ;; with this PCRE regexp doesn't work quite right, as it doesn't match
+                           ;; all the keywords, but pcre2el doesn't convert to "extended regular
+                           ;; expressions", so this will have to do.  Maybe we should test whether
+                           ;; the version of grep installed supports "-P".
+                           (list "-exec" "grep" "-bPH" magit-todos-ag-search-regexp "{}" "+")))))
+    (when magit-todos-nice
+      (setq command (append (list "nice" "-n5") command)))
+    (magit-todos--async-start-process "magit-todos--grep-scan-async"
+      :command command
+      :finish-func (apply-partially #'magit-todos--grep-scan-async-callback magit-status-buffer))))
+
+(defun magit-todos--grep-scan-async-callback (magit-status-buffer process)
+  "Callback for `magit-todos--grep-scan-async'."
+  ;; See <https://github.com/jwiegley/emacs-async/issues/101>
+  (with-current-buffer (process-buffer process)
+    (let (items)
+      (goto-char (point-min))
+      (setq items
+            (cl-loop while (re-search-forward magit-todos-grep-result-regexp (line-end-position) t)
+                     ;; TODO: Append ignored directories directly to find|grep command
+                     for filename = (match-string 1)
+                     for position = (match-string 2)
+                     for keyword = (match-string 4)
+                     for string = (match-string 5)
+                     collect (a-list :filename (save-match-data (f-relative filename default-directory))
+                                     :position (string-to-number position)
+                                     :keyword keyword
+                                     :string (format "%s: %s"
+                                                     (propertize keyword
+                                                                 'face (magit-todos--keyword-face keyword))
+                                                     (or string "")))
+                     do (forward-line 1)))
+      (magit-todos--insert-items-callback magit-status-buffer items))))
 
 ;;;;; ag
 
