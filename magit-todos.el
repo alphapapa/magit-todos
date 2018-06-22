@@ -183,9 +183,9 @@ regular expression."
                  magit-todos-ag-search-regexp (rxt-elisp-to-pcre magit-todos-search-regexp)
                  magit-todos-grep-result-regexp (rx-to-string `(seq bol
                                                                     ;; Filename
-                                                                    (group-n 1 (1+ (not (any ":")))) ":"
+                                                                    (group-n 8 (1+ (not (any ":")))) ":"
                                                                     ;; Position
-                                                                    (group-n 2 (1+ digit)) ":"
+                                                                    (group-n 9 (1+ digit)) ":"
                                                                     (minimal-match (0+ not-newline))
                                                                     ;; Keyword
                                                                     (group-n 4 (or ,@keywords)) (optional ":")
@@ -341,6 +341,11 @@ used."
   "Extra arguments to pass to rg."
   :type '(repeat string))
 
+;;;; Structs
+
+(cl-defstruct magit-todos-item
+  filename org-level line column position keyword description)
+
 ;;;; Commands
 
 ;;;###autoload
@@ -361,9 +366,9 @@ used."
   (interactive)
   (pcase-let* ((item (magit-current-section))
                ((eieio value) item)
-               ((map (:filename file) (:position position) (:line line) (:column column )) value))
-    (switch-to-buffer (or (find-buffer-visiting file)
-                          (find-file-noselect file)))
+               ((cl-struct magit-todos-item filename position line column) value))
+    (switch-to-buffer (or (find-buffer-visiting filename)
+                          (find-file-noselect filename)))
     (if position
         (goto-char position)
       (goto-char (point-min))
@@ -371,6 +376,125 @@ used."
       (forward-char column))))
 
 ;;;; Functions
+
+(defun magit-todos--insert-items ()
+  "Insert to-do items into current buffer.
+This function should be called from inside a ‘magit-status’ buffer."
+  (when magit-todos-active-scan
+    ;; Avoid running multiple scans for a single magit-status buffer.
+    (let ((buffer (process-buffer magit-todos-active-scan)))
+      (when (process-live-p magit-todos-active-scan)
+        (delete-process magit-todos-active-scan))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))
+    (setq magit-todos-active-scan nil))
+  (setq magit-todos-active-scan (funcall magit-todos-scan-fn
+                                         :magit-status-buffer (current-buffer)
+                                         :directory default-directory
+                                         :depth magit-todos-depth
+                                         :timeout magit-todos-async-timeout)))
+
+(defun magit-todos--insert-items-callback (magit-status-buffer items)
+  "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
+  (declare (indent defun))
+  (setq items (magit-todos--sort items))
+  (if (not (buffer-live-p magit-status-buffer))
+      (message "`magit-todos--insert-items-callback': Callback called for deleted buffer")
+    ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
+    (with-current-buffer magit-status-buffer
+      (when-let ((magit-section-show-child-count t)
+                 (inhibit-read-only t)
+                 ;; HACK: "For internal use only."  But this makes collapsing the new section work!
+                 (magit-insert-section--parent magit-root-section)
+                 (width (window-text-width)))
+        (save-excursion
+          (goto-char (point-min))
+          (pcase magit-todos-insert-at
+            ;; Go to insertion position
+            ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
+                           until (not (member this-section '(branch tags)))
+                           do (magit-section-forward)))
+            ('bottom (goto-char (point-max)))
+            (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
+          ;; Insert section
+          (let ((section (magit-insert-section (todos)
+                           (magit-insert-heading "TODOs:")
+                           (dolist (item items)
+                             (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
+                                    (string (--> (concat filename " "
+                                                         (funcall (if (s-suffix? ".org" filename)
+                                                                      #'magit-todos--format-org
+                                                                    #'magit-todos--format-plain)
+                                                                  item))
+                                                 (truncate-string-to-width it width))))
+                               (magit-insert-section (todo item)
+                                 (insert string)))
+                             (insert "\n"))
+                           (insert "\n"))))
+            ;; Set section visibility
+            (pcase (magit-section-cached-visibility section)
+              ('hide (magit-section-hide section))
+              ('show (magit-section-show section))
+              (_ (if (> (length items) magit-todos-max-items)
+                     ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
+                     (magit-section-hide section)
+                   ;; Not hidden: set slot manually (necessary for some reason)
+                   (oset section hidden nil))))))))))
+
+(defun magit-todos--skip-section (condition)
+  "Move past the section matching CONDITION.
+See `magit-section-match'."
+  (goto-char (point-min))
+  (ignore-errors
+    ;; `magit-section-forward' raises an error when there are no more sections.
+    (cl-loop until (magit-section-match condition)
+             do (magit-section-forward))
+    (cl-loop until (not (magit-section-match condition))
+             do (condition-case nil
+                    (magit-section-forward)
+                  (error (progn
+                           (goto-char (1- (point-max)))
+                           (cl-return)))))))
+
+(cl-defun magit-todos--next-item (regexp &optional filename)
+  "Return item on current line, parsing current buffer with REGEXP.
+FILENAME is added to the item as its filename.  Sets match data.
+This should be called in a process's output buffer from one of
+the async callback functions.  The calling function should
+advance to the next line."
+  (when (re-search-forward regexp (line-end-position) t)
+    (make-magit-todos-item :filename (or filename
+                                         (match-string 8))
+                           :org-level (match-string 1)
+                           :line (awhen (match-string 2)
+                                   (string-to-number it))
+                           :column (awhen (match-string 3)
+                                     (string-to-number it))
+                           :position (awhen (match-string 9)
+                                       (string-to-number it))
+                           :keyword (match-string 4)
+                           :description (match-string 5))))
+
+(defun magit-todos--keyword-face (keyword)
+  "Return face for KEYWORD."
+  ;; TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed
+  ;; non-uppercase.  Preserving the distinction might be useful.
+  (when magit-todos-ignore-case
+    (setq keyword (upcase keyword)))
+  (atypecase (a-get hl-todo-keyword-faces keyword)
+    (string (list :inherit 'hl-todo :foreground it))
+    (t it)))
+
+;;;;; Built-in scanner
+
+(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory _depth _timeout)
+  "Return to-dos in DIRECTORY, scanning from inside Emacs."
+  (--> (funcall magit-todos-internal-scan-files-fn directory)
+       (magit-todos--filter-files it)
+       (-map #'magit-todos--file-todos it)
+       (-non-nil it)
+       (-flatten-n 1 it)
+       (magit-todos--insert-items-callback magit-status-buffer it)))
 
 (defun magit-todos--repo-todos (&optional path)
   "Return to-do items for repo at PATH.
@@ -405,10 +529,6 @@ is killed."
                                         (match-string 6)
                                         "")))
     (let ((case-fold-search magit-todos-ignore-case)
-          (string-fn (lambda ()
-                       (format "%s: %s"
-                               (propertize keyword 'face (magit-todos--keyword-face keyword))
-                               description)))
           (base-directory default-directory)
           (enable-local-variables nil)
           kill-buffer filename)
@@ -430,120 +550,18 @@ is killed."
                                              ;; raise any errors.
                                              (find-file-noselect file 'nowarn 'raw)))))
           (setq filename (f-relative (buffer-file-name) base-directory))
-          (when (and magit-todos-fontify-org
-                     (string= "org" (f-ext (buffer-file-name))))
-            ;; TODO: Capture Org priority and allow sorting by it.
-            (setq string-fn (lambda ()
-                              (org-fontify-like-in-org-mode
-                               (format "%s %s %s" org-level keyword description)))))
           (prog1 (save-excursion
                    (save-restriction
                      (widen)
                      (goto-char (point-min))
                      (cl-loop while (re-search-forward magit-todos-search-regexp nil 'noerror)
                               ;; TODO: Move string formatting to end of process and experiment with alignment
-                              collect (a-list :filename filename
-                                              :keyword keyword
-                                              :position position
-                                              :string (funcall string-fn)))))
+                              collect (make-magit-todos-item :filename filename
+                                                             :keyword keyword
+                                                             :position position
+                                                             :description description))))
             (when kill-buffer
               (kill-buffer))))))))
-
-(defun magit-todos--insert-items ()
-  "Insert to-do items into current buffer.
-This function should be called from inside a ‘magit-status’ buffer."
-  (when magit-todos-active-scan
-    ;; Avoid running multiple scans for a single magit-status buffer.
-    (let ((buffer (process-buffer magit-todos-active-scan)))
-      (when (process-live-p magit-todos-active-scan)
-        (delete-process magit-todos-active-scan))
-      (when (buffer-live-p buffer)
-        (kill-buffer buffer)))
-    (setq magit-todos-active-scan nil))
-  (setq magit-todos-active-scan (funcall magit-todos-scan-fn
-                                         :magit-status-buffer (current-buffer)
-                                         :directory default-directory
-                                         :depth magit-todos-depth
-                                         :timeout magit-todos-async-timeout)))
-
-(defun magit-todos--insert-items-callback (magit-status-buffer items)
-  "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
-  (setq items (magit-todos--sort items))
-  (if (not (buffer-live-p magit-status-buffer))
-      (message "`magit-todos--insert-items-callback': Callback called for deleted buffer")
-    ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
-    (with-current-buffer magit-status-buffer
-      (when-let ((magit-section-show-child-count t)
-                 (inhibit-read-only t)
-                 ;; HACK: "For internal use only."  But this makes collapsing the new section work!
-                 (magit-insert-section--parent magit-root-section)
-                 (width (window-text-width)))
-        (save-excursion
-          (goto-char (point-min))
-          (pcase magit-todos-insert-at
-            ;; Go to insertion position
-            ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
-                           until (not (member this-section '(branch tags)))
-                           do (magit-section-forward)))
-            ('bottom (goto-char (point-max)))
-            (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
-          ;; Insert section
-          (let ((section (magit-insert-section (todos)
-                           (magit-insert-heading "TODOs:")
-                           (dolist (item items)
-                             (-let* (((&alist :filename filename :string string) item)
-                                     (filename (propertize filename 'face 'magit-filename))
-                                     (string (truncate-string-to-width (format "%s %s" filename string)
-                                                                       width)))
-                               (magit-insert-section (todo item)
-                                 (insert string)))
-                             (insert "\n"))
-                           (insert "\n"))))
-            ;; Set section visibility
-            (pcase (magit-section-cached-visibility section)
-              ('hide (magit-section-hide section))
-              ('show (magit-section-show section))
-              (_ (if (> (length items) magit-todos-max-items)
-                     ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
-                     (magit-section-hide section)
-                   ;; Not hidden: set slot manually (necessary for some reason)
-                   (oset section hidden nil))))))))))
-
-(defun magit-todos--skip-section (condition)
-  "Move past the section matching CONDITION.
-See `magit-section-match'."
-  (goto-char (point-min))
-  (ignore-errors
-    ;; `magit-section-forward' raises an error when there are no more sections.
-    (cl-loop until (magit-section-match condition)
-             do (magit-section-forward))
-    (cl-loop until (not (magit-section-match condition))
-             do (condition-case nil
-                    (magit-section-forward)
-                  (error (progn
-                           (goto-char (1- (point-max)))
-                           (cl-return)))))))
-
-(defun magit-todos--keyword-face (keyword)
-  "Return face for KEYWORD."
-  ;; TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed
-  ;; non-uppercase.  Preserving the distinction might be useful.
-  (when magit-todos-ignore-case
-    (setq keyword (upcase keyword)))
-  (atypecase (a-get hl-todo-keyword-faces keyword)
-    (string (list :inherit 'hl-todo :foreground it))
-    (t it)))
-
-;;;;; Directory scanning
-
-(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory _depth _timeout)
-  "Return to-dos in DIRECTORY, scanning from inside Emacs."
-  (--> (funcall magit-todos-internal-scan-files-fn directory)
-       (magit-todos--filter-files it)
-       (-map #'magit-todos--file-todos it)
-       (-non-nil it)
-       (-flatten-n 1 it)
-       (magit-todos--insert-items-callback magit-status-buffer it)))
 
 ;;;;; grep
 
@@ -568,6 +586,7 @@ See `magit-section-match'."
                                                                (-non-nil (--map (cond ((stringp it)
                                                                                        (concat "*/" it))
                                                                                       ((consp it)
+                                                                                       ;; FIXME: What is `dir' supposed to be here?
                                                                                        (and (funcall (car it) dir)
                                                                                             (concat "*/" (cdr it)))))
                                                                                 grep-find-ignored-directories)))
@@ -601,28 +620,20 @@ See `magit-section-match'."
   "Callback for `magit-todos--grep-scan-async'."
   ;; See <https://github.com/jwiegley/emacs-async/issues/101>
   (with-current-buffer (process-buffer process)
-    (let (items)
-      (goto-char (point-min))
-      (setq items
-            (cl-loop while (re-search-forward magit-todos-grep-result-regexp (line-end-position) t)
-                     ;; TODO: Append ignored directories directly to find|grep command
-                     for filename = (match-string 1)
-                     for position = (match-string 2)
-                     for keyword = (match-string 4)
-                     for string = (match-string 5)
-                     collect (a-list :filename (save-match-data (f-relative filename default-directory))
-                                     :position (string-to-number position)
-                                     :keyword keyword
-                                     :string (format "%s: %s"
-                                                     (propertize keyword
-                                                                 'face (magit-todos--keyword-face keyword))
-                                                     (or string "")))
-                     do (forward-line 1)))
-      (magit-todos--insert-items-callback magit-status-buffer items))))
+    (goto-char (point-min))
+    (magit-todos--insert-items-callback
+      magit-status-buffer
+      (cl-loop for item = (magit-todos--next-item magit-todos-grep-result-regexp)
+               while item
+               ;; TODO: Ignore things with args to find instead of here
+               unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                               thereis (s-suffix? suffix (magit-todos-item-filename item)))
+               do (cl-callf f-relative (magit-todos-item-filename item) default-directory)
+               and collect item
+               do (forward-line 1)))))
 
 ;;;;; ag
 
-;; TODO: Factor out common code for ag/rg
 ;; TODO: Restore Org heading fontification
 
 (cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth _timeout)
@@ -648,29 +659,20 @@ See `magit-section-match'."
   (when (= 124 (process-exit-status process))
     (error "ag timed out.  You may want to increase `magit-todos-async-timeout'."))
   (with-current-buffer (process-buffer process)
-    (let (items)
-      (goto-char (point-min))
-      (setq items
-            (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
-                     append (let ((filename (buffer-substring (1+ (point-at-bol)) (point-at-eol))))
-                              (forward-line 1)
-                              (cl-loop while (re-search-forward magit-todos-ag-result-regexp (line-end-position) t)
-                                       ;; TODO: Filter directories from ag
-                                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                                                       thereis (s-suffix? suffix filename))
-                                       collect (a-list :filename (save-match-data (f-relative filename default-directory))
-                                                       :line (string-to-number (match-string 2))
-                                                       :column (string-to-number (match-string 3))
-                                                       :keyword (match-string 4)
-                                                       :string (format "%s: %s"
-                                                                       (propertize (match-string 4)
-                                                                                   'face (magit-todos--keyword-face (match-string 4)))
-                                                                       (match-string 5)))
-                                       do (forward-line 1)))
-                     do (forward-line 1)))
-      (unless items
-        (error "AGH"))
-      (magit-todos--insert-items-callback magit-status-buffer items))))
+    (goto-char (point-min))
+    (magit-todos--insert-items-callback
+      magit-status-buffer
+      (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
+               append (let ((filename (f-relative (buffer-substring (1+ (point-at-bol)) (point-at-eol)) default-directory)))
+                        (forward-line 1)
+                        (cl-loop for item = (magit-todos--next-item magit-todos-ag-result-regexp filename)
+                                 while item
+                                 ;; TODO: Ignore things with args to ag instead of here
+                                 unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                                 thereis (s-suffix? suffix (magit-todos-item-filename item)))
+                                 collect item
+                                 do (forward-line 1)))
+               do (forward-line 1)))))
 
 ;;;;; rg
 
@@ -721,29 +723,35 @@ This is a copy of `async-start-process' that does not override
   (when (= 124 (process-exit-status process))
     (error "rg timed out.  You may want to increase `magit-todos-rg-timeout'"))
   (with-current-buffer (process-buffer process)
-    (let (items)
-      (goto-char (point-min))
-      (setq items
-            (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
-                     append (let ((filename (buffer-substring (point-at-bol) (point-at-eol))))
-                              (forward-line 1)
-                              (cl-loop while (re-search-forward magit-todos-rg-result-regexp (line-end-position) t)
-                                       ;; TODO: Filter directories from rg
-                                       unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                                                       thereis (s-suffix? suffix filename))
-                                       collect (a-list :filename (save-match-data (f-relative filename default-directory))
-                                                       :line (string-to-number (match-string 2))
-                                                       :column (string-to-number (match-string 3))
-                                                       :keyword (match-string 4)
-                                                       :string (format "%s: %s"
-                                                                       (propertize (match-string 4)
-                                                                                   'face (magit-todos--keyword-face (match-string 4)))
-                                                                       (or (match-string 5) "")))
-                                       do (forward-line 1)))
-                     do (forward-line 1)))
-      (unless items
-        (error "ARGH"))
-      (magit-todos--insert-items-callback magit-status-buffer items))))
+    (goto-char (point-min))
+    (magit-todos--insert-items-callback
+      magit-status-buffer
+      (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
+               append (let ((filename (f-relative (buffer-substring (point-at-bol) (point-at-eol)) default-directory)))
+                        (forward-line 1)
+                        (cl-loop for item = (magit-todos--next-item magit-todos-rg-result-regexp filename)
+                                 while item
+                                 ;; TODO: Ignore things with args to rg instead of here
+                                 unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                                                 thereis (s-suffix? suffix (magit-todos-item-filename item)))
+                                 collect item
+                                 do (forward-line 1)))
+               do (forward-line 1)))))
+
+;;;;; Formatters
+
+(defun magit-todos--format-plain (item)
+  "Format ITEM from a non-Org file."
+  (format "%s: %s"
+          (propertize (magit-todos-item-keyword item) 'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
+          (or (magit-todos-item-description item) "")))
+
+(defun magit-todos--format-org (item)
+  "Format ITEM from an Org file."
+  (org-fontify-like-in-org-mode
+   (concat (magit-todos-item-org-level item) " "
+           (magit-todos-item-keyword item) " "
+           (magit-todos-item-description item))))
 
 ;;;;; Sorting
 
@@ -755,7 +763,7 @@ This is a copy of `async-start-process' that does not override
 (defun magit-todos--sort-by-keyword (a b)
   "Return non-nil if A's keyword is before B's in `magit-todos-keywords-list'."
   (cl-flet ((item-keyword (item)
-                          (a-get item :keyword))
+                          (magit-todos-item-keyword item))
             (keyword-index (keyword)
                            (or (-elem-index keyword magit-todos-keywords-list) 0)))
     (< (keyword-index (item-keyword a))
@@ -763,17 +771,16 @@ This is a copy of `async-start-process' that does not override
 
 (defun magit-todos--sort-by-position (a b)
   "Return non-nil if A's position in its file is before B's."
-  (let ((a-position (or (a-get a :position)
-                        (a-get a :line)))
-        (b-position (or (a-get b :position)
-                        (a-get b :line))))
+  (let ((a-position (or (magit-todos-item-position a)
+                        (magit-todos-item-line a)))
+        (b-position (or (magit-todos-item-position b)
+                        (magit-todos-item-line b))))
     (< a-position b-position)))
 
 (defun magit-todos--sort-by-filename (a b)
   "Return non-nil if A's filename is `string<' B's."
-  (let ((a-filename (a-get a :filename))
-        (b-filename (a-get b :filename)))
-    (string< a-filename b-filename)))
+  (string< (magit-todos-item-filename a)
+           (magit-todos-item-filename b)))
 
 ;;;; Footer
 
