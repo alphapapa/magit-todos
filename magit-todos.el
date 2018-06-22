@@ -480,7 +480,7 @@ This function should be called from inside a ‘magit-status’ buffer."
         (save-excursion
           (goto-char (point-min))
           (pcase magit-todos-insert-at
-            ('top (cl-loop for this-section = (caar (magit-section-ident (magit-current-section)))
+            ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
                            until (not (or (equal this-section 'branch)
                                           (equal this-section 'tags)))
                            do (magit-section-forward)))
