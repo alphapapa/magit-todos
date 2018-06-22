@@ -470,6 +470,7 @@ This function should be called from inside a ‘magit-status’ buffer."
   (setq items (magit-todos--sort items))
   (if (not (buffer-live-p magit-status-buffer))
       (message "`magit-todos--insert-items-callback': Callback called for deleted buffer")
+    ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
     (with-current-buffer magit-status-buffer
       (when-let ((magit-section-show-child-count t)
                  (inhibit-read-only t)
