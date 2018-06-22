@@ -69,6 +69,7 @@
 
 (require 'cl-lib)
 (require 'org)
+(require 'grep)
 (require 'seq)
 
 (require 'a)
