@@ -186,6 +186,8 @@ regular expression."
                                                                     (group-n 8 (1+ (not (any ":")))) ":"
                                                                     ;; Position
                                                                     (group-n 9 (1+ digit)) ":"
+                                                                    ;; Org level
+                                                                    (optional (group-n 1 (1+ "*")))
                                                                     (minimal-match (0+ not-newline))
                                                                     ;; Keyword
                                                                     (group-n 4 (or ,@keywords)) (optional ":")
@@ -198,6 +200,8 @@ regular expression."
                                                                   ;; Column
                                                                   (group-n 3 (1+ digit)) " "
                                                                   (1+ digit) ":"
+                                                                  ;; Org level
+                                                                  (optional (group-n 1 (1+ "*")))
                                                                   (minimal-match (0+ not-newline))
                                                                   ;; Keyword
                                                                   (group-n 4 (or ,@keywords)) (optional ":")
@@ -209,6 +213,8 @@ regular expression."
                                                                   (group-n 2 (1+ digit)) ":"
                                                                   ;; Column
                                                                   (group-n 3 (1+ digit)) ":"
+                                                                  ;; Org level
+                                                                  (optional (group-n 1 (1+ "*")))
                                                                   (minimal-match (0+ not-newline))
                                                                   ;; Keyword
                                                                   (group-n 4 (or ,@keywords)) (optional ":")
@@ -553,8 +559,6 @@ advance to the next line."
                do (forward-line 1)))))
 
 ;;;;; ag
-
-;; TODO: Restore Org heading fontification
 
 (cl-defun magit-todos--ag-scan-async (&key magit-status-buffer directory depth _timeout)
   "Return to-dos in DIRECTORY, scanning with ag."
