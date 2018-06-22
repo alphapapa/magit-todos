@@ -218,13 +218,12 @@ regular expression."
 
 (defcustom magit-todos-scan-fn nil
   "File scanning method.
-Will attempt to find local utilities (rg and ag) and fallback to
-scanning from inside Emacs."
+\"Automatic\" will attempt to use rg, ag, and find-grep, in that
+order. "
   :type '(choice (const :tag "Automatic" nil)
                  (const :tag "ag" magit-todos--ag-scan-async)
                  (const :tag "rg" magit-todos--rg-scan-async)
                  (const :tag "find-grep" magit-todos--grep-scan-async)
-                 (const :tag "Emacs" magit-todos--emacs-scan)
                  (function :tag "Custom function"))
   :set (lambda (option value)
          (unless value
@@ -235,7 +234,7 @@ scanning from inside Emacs."
                               #'magit-todos--ag-scan-async)
                              ((string-match (rx "-P, --perl-regexp") (shell-command-to-string "grep --help"))
                               #'magit-todos--grep-scan-async)
-                             (t #'magit-todos--emacs-scan))))
+                             (t (error "magit-todos: Unable to find rg, ag, or a grep command that supports the --perl-regexp option")))))
          (set-default option value)))
 
 (defcustom magit-todos-max-items 20
@@ -304,7 +303,6 @@ necessary."
   "Maximum depth of files in repo working tree to scan for to-dos.
 Deeper scans can be slow in large projects.  You may wish to set
 this in a directory-local variable for certain projects."
-  ;; TODO: Make depth setting work with --emacs-scan
   ;; TODO: Automatic depth setting that works well in large repos
   :type '(choice (const :tag "Repo root directory only" 0)
                  integer))
@@ -484,84 +482,6 @@ advance to the next line."
   (atypecase (a-get hl-todo-keyword-faces keyword)
     (string (list :inherit 'hl-todo :foreground it))
     (t it)))
-
-;;;;; Built-in scanner
-
-(cl-defun magit-todos--emacs-scan (&key magit-status-buffer directory _depth _timeout)
-  "Return to-dos in DIRECTORY, scanning from inside Emacs."
-  (--> (funcall magit-todos-internal-scan-files-fn directory)
-       (magit-todos--filter-files it)
-       (-map #'magit-todos--file-todos it)
-       (-non-nil it)
-       (-flatten-n 1 it)
-       (magit-todos--insert-items-callback magit-status-buffer it)))
-
-(defun magit-todos--repo-todos (&optional path)
-  "Return to-do items for repo at PATH.
-PATH defaults to `default-directory'."
-  (let* ((magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always magit-todos-ignore-directories)))
-         (path (or path default-directory)))
-    (--> (funcall magit-todos-scan-fn path)
-         (magit-todos--sort it))))
-
-(defun magit-todos--working-tree-files ()
-  "Return list of all files in working tree."
-  (f-files default-directory nil magit-todos-recursive))
-
-(defun magit-todos--filter-files (files)
-  "Return FILES without ignored ones.
-FILES should be a list of files, already flattened."
-  (--remove (or (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
-                         thereis (s-suffix? suffix it))
-                (cl-loop for dir in magit-todos-ignored-directories
-                         thereis (string= dir (f-base it))))
-            files))
-
-(defun magit-todos--file-todos (file)
-  "Return to-do items for FILE.
-If FILE is not being visited, it is visited and then its buffer
-is killed."
-  (cl-symbol-macrolet ((position (match-beginning 0))
-                       (org-level (match-string 1))
-                       (keyword (or (match-string 2)
-                                    (match-string 5)))
-                       (description (or (match-string 3)
-                                        (match-string 6)
-                                        "")))
-    (let ((case-fold-search magit-todos-ignore-case)
-          (base-directory default-directory)
-          (enable-local-variables nil)
-          kill-buffer filename)
-      (catch 'not-a-file
-        ;; `magit-list-files' seems to return directories sometimes, and we should skip those, so we
-        ;; check here when it's not open in a buffer to avoid calling `f-file?' on every "file".
-        ;; NOTE: I think this will work, but I'm not sure if `find-buffer-visiting' could return
-        ;; e.g. a dired buffer, so we might need to check every file after all, but I'd like to
-        ;; avoid that since it means a lot of calls.
-        (with-current-buffer (cl-typecase file
-                               (buffer file)
-                               (string (or (find-buffer-visiting file)
-                                           (progn
-                                             (unless (f-file? file)
-                                               (throw 'not-a-file nil))
-                                             (setq kill-buffer t)
-                                             ;; NOTE: Not sure if nowarn is needed, but it seems
-                                             ;; like a good idea, because we don't want this to
-                                             ;; raise any errors.
-                                             (find-file-noselect file 'nowarn 'raw)))))
-          (setq filename (f-relative (buffer-file-name) base-directory))
-          (prog1 (save-excursion
-                   (save-restriction
-                     (widen)
-                     (goto-char (point-min))
-                     (cl-loop while (re-search-forward magit-todos-search-regexp nil 'noerror)
-                              ;; TODO: Move string formatting to end of process and experiment with alignment
-                              collect (make-magit-todos-item :filename filename
-                                                             :keyword keyword
-                                                             :position position
-                                                             :description description))))
-            (when kill-buffer
-              (kill-buffer))))))))
 
 ;;;;; grep
 
