@@ -480,11 +480,13 @@ This function should be called from inside a ‘magit-status’ buffer."
         (save-excursion
           (goto-char (point-min))
           (pcase magit-todos-insert-at
+            ;; Go to insertion position
             ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
                            until (not (member this-section '(branch tags)))
                            do (magit-section-forward)))
             ('bottom (goto-char (point-max)))
             (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
+          ;; Insert section
           (let ((section (magit-insert-section (todos)
                            (magit-insert-heading "TODOs:")
                            (dolist (item items)
@@ -496,6 +498,7 @@ This function should be called from inside a ‘magit-status’ buffer."
                                  (insert string)))
                              (insert "\n"))
                            (insert "\n"))))
+            ;; Set section visibility
             (pcase (magit-section-cached-visibility section)
               ('hide (magit-section-hide section))
               ('show (magit-section-show section))
