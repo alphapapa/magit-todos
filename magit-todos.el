@@ -481,8 +481,7 @@ This function should be called from inside a ‘magit-status’ buffer."
           (goto-char (point-min))
           (pcase magit-todos-insert-at
             ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
-                           until (not (or (equal this-section 'branch)
-                                          (equal this-section 'tags)))
+                           until (not (member this-section '(branch tags)))
                            do (magit-section-forward)))
             ('bottom (goto-char (point-max)))
             (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
