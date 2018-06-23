@@ -491,6 +491,26 @@ advance to the next line."
     (string (list :inherit 'hl-todo :foreground it))
     (t it)))
 
+(defun magit-todos-fontify-like-in-org-mode (s &optional odd-levels)
+  "Fontify string S like in Org-mode.
+
+`org-fontify-like-in-org-mode' is a very, very slow function
+because it creates a new temporary buffer and runs `org-mode' for
+every string it fontifies.  This function reuses a single
+invisible buffer and only runs `org-mode' when the buffer is
+created."
+  (let ((buffer (get-buffer " *magit-todos-fontify*")))
+    (unless buffer
+      (setq buffer (get-buffer-create " *magit-todos-fontify*"))
+      (with-current-buffer buffer
+        (org-mode)))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (insert s)
+      (let ((org-odd-levels-only odd-levels))
+        (font-lock-ensure)
+        (buffer-string)))))
+
 ;;;;; grep
 
 (cl-defun magit-todos--grep-scan-async (&key magit-status-buffer directory depth _timeout)
@@ -674,7 +694,7 @@ This is a copy of `async-start-process' that does not override
 
 (defun magit-todos--format-org (item)
   "Format ITEM from an Org file."
-  (org-fontify-like-in-org-mode
+  (magit-todos-fontify-like-in-org-mode
    (concat (magit-todos-item-org-level item) " "
            (magit-todos-item-keyword item) " "
            (magit-todos-item-description item))))
