@@ -534,8 +534,7 @@ created."
                                                                (-non-nil (--map (cond ((stringp it)
                                                                                        (concat "*/" it))
                                                                                       ((consp it)
-                                                                                       ;; FIXME: What is `dir' supposed to be here?
-                                                                                       (and (funcall (car it) dir)
+                                                                                       (and (funcall (car it) it)
                                                                                             (concat "*/" (cdr it)))))
                                                                                 grep-find-ignored-directories)))
                                                    ")" "-prune"))
@@ -544,7 +543,7 @@ created."
                                                    "(" "-name"
                                                    (-interpose (list "-o" "-name")
                                                                (--map (cond ((stringp it) it)
-                                                                            ((consp it) (and (funcall (car it) dir)
+                                                                            ((consp it) (and (funcall (car it) it)
                                                                                              (cdr it))))
                                                                       grep-find-ignored-files))
                                                    ")" "-prune"))))
