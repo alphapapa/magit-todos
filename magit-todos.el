@@ -488,7 +488,7 @@ TYPE is a symbol which is used by Magit internally to identify sections."
     (if (and (consp group-fns)
              (> (length group-fns) 0))
         ;; Insert more sections
-        (aprog1                         ; `aprog1' is really handy here.
+        (aprog1  ; `aprog1' is really handy here.
             (magit-insert-section ((eval type))
               (magit-insert-heading heading)
               (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
