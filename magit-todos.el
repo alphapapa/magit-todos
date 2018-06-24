@@ -137,6 +137,10 @@ Set automatically depending on grouping.")
   "Show TODO items in source code comments in repos' files."
   :group 'magit)
 
+(defcustom magit-todos-fontify-keyword-headers t
+  "Apply keyword faces to group keyword headers."
+  :type 'boolean)
+
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
   :type '(repeat string)
@@ -493,10 +497,16 @@ TYPE is a symbol which is used by Magit internally to identify sections."
               (magit-insert-heading heading)
               (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
                        do (magit-todos--insert-group :type (make-symbol group-type)
-                            :heading (concat group-type
-                                             (if (= 1 (length group-fns))
-                                                 ":"
-                                               (concat " " (format "(%s)" (length items)))))
+                            :heading (concat
+                                      (if (and magit-todos-fontify-keyword-headers
+                                               (member group-type magit-todos-keywords-list))
+                                          (propertize group-type 'face (magit-todos--keyword-face group-type))
+                                        group-type)
+                                      ;; Item count
+                                      (if (= 1 (length group-fns))
+                                          ":" ; Let Magit add the count.
+                                        ;; Add count ourselves.
+                                        (concat " " (format "(%s)" (length items)))))
                             :group-fns (cdr group-fns)
                             :depth (+ 2 depth)
                             :items items)))
