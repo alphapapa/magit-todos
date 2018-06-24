@@ -567,16 +567,15 @@ automatically hidden halves at each deeper level."
   "Move past the section matching CONDITION.
 See `magit-section-match'."
   (goto-char (point-min))
-  (ignore-errors
-    ;; `magit-section-forward' raises an error when there are no more sections.
-    (cl-loop until (magit-section-match condition)
-             do (magit-section-forward))
-    (cl-loop until (not (magit-section-match condition))
-             do (condition-case nil
-                    (magit-section-forward)
-                  (error (progn
-                           (goto-char (1- (point-max)))
-                           (cl-return)))))))
+  (cl-loop until (magit-section-match condition)
+           do (magit-section-forward))
+  (cl-loop until (not (magit-section-match condition))
+           do (condition-case nil
+                  ;; `magit-section-forward' raises an error when there are no more sections.
+                  (magit-section-forward)
+                (error (progn
+                         (goto-char (1- (point-max)))
+                         (cl-return))))))
 
 (cl-defun magit-todos--next-item (regexp &optional filename)
   "Return item on current line, parsing current buffer with REGEXP.
