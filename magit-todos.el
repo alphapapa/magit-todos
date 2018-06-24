@@ -464,10 +464,11 @@ This function should be called from inside a ‘magit-status’ buffer."
           (magit-todos--set-visibility :section it :num-items num-items))))))
 
 (cl-defun magit-todos--insert-group (&key depth group-fns heading type items)
-  "Insert grouped ITEMS into Magit section and return the section.
+  "Insert ITEMS into grouped Magit section and return the section.
 
-DEPTH sets indentation and should be 0 for a top-level group,
-increasing by 1 for each hierarchical level.
+DEPTH sets indentation and should be 0 for a top-level group.  It
+is automatically incremented by 2 when this function calls
+itself.
 
 GROUP-FNS may be a list of functions to which ITEMS are applied
 with `-group-by' to group them.  Items are grouped
@@ -475,14 +476,17 @@ hierarchically, i.e. when GROUP-FNS has more than one function,
 items are first grouped by the first function, then subgroups are
 created which group items by subsequent functions.
 
-HEADING is a string which is the group's heading.  If GROUP-FNS
-has only one function, a colon is appended, causing Magit to
-automatically append the number of ITEMS.
+HEADING is a string which is the group's heading.  The count of
+items in each group is automatically appended.
 
-TYPE is a symbol which is used by Magit internally to identify sections."
+TYPE is a symbol which is used by Magit internally to identify
+sections."
   ;; FIXME: Visibility caching doesn't work :( It seems that the `magit-section-visibility-cache'
   ;; variable gets filled with extra entries with incorrect visibility states, and then `alist-get'
   ;; gets the wrong value.  Need to see if that happens when magit-todos-mode is off.
+
+  ;; FIXME: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
+  ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
   (let* ((indent (s-repeat depth " "))
          (heading (concat indent heading))
@@ -492,7 +496,7 @@ TYPE is a symbol which is used by Magit internally to identify sections."
     (if (and (consp group-fns)
              (> (length group-fns) 0))
         ;; Insert more sections
-        (aprog1  ; `aprog1' is really handy here.
+        (aprog1                         ; `aprog1' is really handy here.
             (magit-insert-section ((eval type))
               (magit-insert-heading heading)
               (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
