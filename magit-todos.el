@@ -468,18 +468,21 @@ FILENAME is added to the item as its filename.  Sets match data.
 This should be called in a process's output buffer from one of
 the async callback functions.  The calling function should
 advance to the next line."
-  (when (re-search-forward regexp (line-end-position) t)
-    (make-magit-todos-item :filename (or filename
-                                         (match-string 8))
-                           :org-level (match-string 1)
-                           :line (awhen (match-string 2)
-                                   (string-to-number it))
-                           :column (awhen (match-string 3)
+  ;; FIXME: Should we bind `case-fold-search' elsewhere so it doesn't happen every time this
+  ;; function is called?
+  (let ((case-fold-search magit-todos-ignore-case))
+    (when (re-search-forward regexp (line-end-position) t)
+      (make-magit-todos-item :filename (or filename
+                                           (match-string 8))
+                             :org-level (match-string 1)
+                             :line (awhen (match-string 2)
                                      (string-to-number it))
-                           :position (awhen (match-string 9)
+                             :column (awhen (match-string 3)
                                        (string-to-number it))
-                           :keyword (match-string 4)
-                           :description (match-string 5))))
+                             :position (awhen (match-string 9)
+                                         (string-to-number it))
+                             :keyword (match-string 4)
+                             :description (match-string 5)))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
