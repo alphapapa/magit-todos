@@ -43,6 +43,7 @@ Install these required packages:
 
 -  =a=
 -  =anaphora=
+-  =async=
 -  =dash=
 -  =f=
 -  =hl-todo=
