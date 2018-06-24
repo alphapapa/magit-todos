@@ -22,13 +22,13 @@ This package displays keyword entries from source code comments and Org files in
 
 [[screenshots/matrix.png]]
 
-Org headings can optionally be fontified as such (this shows sorting by filename, then keyword, then buffer position):
+Org headings can optionally be fontified as such, and sorting can be customized (this shows sorting by filename, then keyword, then buffer position):
 
 [[screenshots/org.png]]
 
-Sorting can be customized.  This shows sorting by keyword, then filename, then buffer position:
+Items can also be automatically grouped in a customizable way, which can be helpful in large repos:
 
-[[screenshots/sort-keyword-filename-position.png]]
+[[screenshots/emacs-grouped.png]]
 
 ** Installation
 :PROPERTIES:
