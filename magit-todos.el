@@ -266,7 +266,8 @@ order. "
 One or more attributes may be chosen, and they will be grouped in
 order."
   :type '(repeat (choice (const :tag "By filename" magit-todos-item-filename)
-                         (const :tag "By keyword" magit-todos-item-keyword))))
+                         (const :tag "By keyword" magit-todos-item-keyword)
+                         (const :tag "By first path component" magit-todos-item-first-path-component))))
 
 (defcustom magit-todos-recursive nil
   "Recurse into subdirectories when looking for to-do items.
@@ -507,7 +508,10 @@ TYPE is a symbol which is used by Magit internally to identify sections."
               (magit-insert-heading heading)
               (dolist (item items)
                 (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
-                       (string (--> (concat (s-repeat depth " ")
+                       (string (--> (concat indent
+                                            (when (> depth 0)
+                                              ;; NOTE: We indent the item for both the group level and the item level.
+                                              "  ")
                                             (when magit-todos-show-filenames
                                               (concat filename " "))
                                             (funcall (if (s-suffix? ".org" filename)
@@ -516,7 +520,7 @@ TYPE is a symbol which is used by Magit internally to identify sections."
                                                      item))
                                     (truncate-string-to-width it (- width depth)))))
                   (magit-insert-section (todo item)
-                    (insert (s-repeat depth " ") string))
+                    (insert string))
                   (insert "\n"))))
           (magit-todos--set-visibility :depth depth :num-items (length items) :section it))))))
 
@@ -609,6 +613,13 @@ created."
       (let ((org-odd-levels-only odd-levels))
         (font-lock-ensure)
         (buffer-string)))))
+
+(defun magit-todos-item-first-path-component (item)
+  "Return ITEM's first directory.
+This assumes that ITEM's filename is already set to a path
+relative to the repo's directory (i.e. this would not be very
+useful with absolute paths)."
+  (car (f-split (magit-todos-item-filename item))))
 
 ;;;;; grep
 

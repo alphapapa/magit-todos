@@ -30,6 +30,10 @@ Items can also be automatically grouped in a customizable way, which can be help
 
 [[screenshots/emacs-grouped.png]]
 
+This shows grouping items by the first path component, then keyword, then filename:
+
+[[screenshots/emacs-grouped-by-path.png]]
+
 ** Installation
 :PROPERTIES:
 :TOC:      0
