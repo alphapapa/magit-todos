@@ -443,25 +443,27 @@ This function should be called from inside a ‘magit-status’ buffer."
          ;; HACK: "For internal use only."  But this makes collapsing the new section work!
          (magit-insert-section--parent magit-root-section)
          (inhibit-read-only t))
-    (with-current-buffer magit-status-buffer
-      (save-excursion
-        (goto-char (point-min))
-        ;; Go to insertion position
-        (pcase magit-todos-insert-at
-          ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
-                         until (not (member this-section '(branch tags)))
-                         do (magit-section-forward)))
-          ('bottom (goto-char (point-max)))
-          (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
-        ;; Insert section
-        (aprog1
-            (magit-todos--insert-group :type 'todos
-              :heading (format "TODOs (%s)" num-items)
-              :group-fns group-fns
-              :items items
-              :depth 0)
-          (insert "\n")
-          (magit-todos--set-visibility :section it :num-items num-items))))))
+    (when (buffer-live-p magit-status-buffer)
+      ;; Don't try to select a killed status buffer
+      (with-current-buffer magit-status-buffer
+        (save-excursion
+          (goto-char (point-min))
+          ;; Go to insertion position
+          (pcase magit-todos-insert-at
+            ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
+                           until (not (member this-section '(branch tags)))
+                           do (magit-section-forward)))
+            ('bottom (goto-char (point-max)))
+            (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
+          ;; Insert section
+          (aprog1
+              (magit-todos--insert-group :type 'todos
+                :heading (format "TODOs (%s)" num-items)
+                :group-fns group-fns
+                :items items
+                :depth 0)
+            (insert "\n")
+            (magit-todos--set-visibility :section it :num-items num-items)))))))
 
 (cl-defun magit-todos--insert-group (&key depth group-fns heading type items)
   "Insert ITEMS into grouped Magit section and return the section.
