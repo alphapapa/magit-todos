@@ -852,6 +852,14 @@ This is a copy of `async-start-process' that does not override
   (string< (magit-todos-item-filename a)
            (magit-todos-item-filename b)))
 
+;;;;; Jump to section
+
+(magit-define-section-jumper magit-jump-to-todos "TODOs" todos)
+
+(if (lookup-key magit-status-mode-map "jT")
+    (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")
+  (define-key magit-status-mode-map "jT" #'magit-jump-to-todos))
+
 ;;;; Footer
 
 (provide 'magit-todos)

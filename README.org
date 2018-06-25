@@ -67,9 +67,8 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 ** Tips
 
-You can customize settings in the =magit-todos= group.
-
-For example, in the Org repo, there are false positives for =next= in the =testing= directory's test files.  You could use ~add-dir-local-variable~ to set ~magit-todos-ignore-directories~ to ~"testing"~, and none of the files in that directory would be scanned for items.
++  Customize settings in the =magit-todos= group.
++  Jump to the to-do list in a Magit status buffer by pressing @@html:<kbd>@@j T@@html:</kbd>@@.
 
 ** Credits
 
