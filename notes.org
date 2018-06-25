@@ -1,0 +1,20 @@
+* Ideas
+** Improving performance
+
+*** Avoid refreshing section too often
+
+On large repos, updating the section from scratch takes some time.  It would be good to avoid doing this too often in large repos.
+
+**** Option for when to refresh it
+
+There should be an option for how often to refresh the to-dos section:
+
++  =always=
++  =manually=
++  a number of seconds (not automatically, but whenever the status buffer is refreshed and this many seconds have elapsed)
+
+=memoize= can be used to implement this, probably with a proxy function to handle always/manually.
+
+**** Set option automatically in large repos
+
+The parsing/insertion should be timed, and if it takes too long, the previous option should be automatically set to timeout or manual.
