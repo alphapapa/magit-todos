@@ -110,6 +110,11 @@ This should be set automatically by customizing
 This should be set automatically by customizing
 `mrgit-todos-keywords'.")
 
+(defvar magit-todos-git-grep-result-regexp nil
+  "Regular expression for git-grep results.
+This should be set automatically by customizing
+`mrgit-todos-keywords'.")
+
 (defvar magit-todos-ag-search-regexp nil
   "Regular expression for ag (and rg).
 This should be set automatically by customizing
@@ -232,13 +237,29 @@ regular expression."
                                                                   (group-n 4 (or ,@keywords)) (optional ":")
                                                                   (optional (1+ blank)
                                                                             ;; Description
-                                                                            (group-n 5 (1+ not-newline)))))))))
+                                                                            (group-n 5 (1+ not-newline)))))
+
+                 magit-todos-git-grep-result-regexp (rx-to-string
+                                                     `(seq bol
+                                                           ;; Filename
+                                                           (group-n 8 (1+ (not (any ":")))) ":"
+                                                           ;; Line
+                                                           (group-n 2 (1+ digit)) ":"
+                                                           ;; Org level
+                                                           (optional (group-n 1 (1+ "*")))
+                                                           (minimal-match (0+ not-newline))
+                                                           ;; Keyword
+                                                           (group-n 4 (or ,@keywords)) (optional ":")
+                                                           (optional (1+ blank)
+                                                                     ;; Description
+                                                                     (group-n 5 (1+ not-newline)))))))))
 
 (defcustom magit-todos-scan-fn nil
   "File scanning method.
 \"Automatic\" will attempt to use rg, ag, and find-grep, in that
 order. "
   :type '(choice (const :tag "Automatic" nil)
+                 (const :tag "git-grep" magit-todos--git-grep-scan-async)
                  (const :tag "ag" magit-todos--ag-scan-async)
                  (const :tag "rg" magit-todos--rg-scan-async)
                  (const :tag "find-grep" magit-todos--grep-scan-async)
@@ -371,6 +392,10 @@ used."
   "Extra arguments to pass to rg."
   :type '(repeat string))
 
+(defcustom magit-todos-git-grep-args nil
+  "Extra arguments to pass to git-grep."
+  :type '(repeat string))
+
 ;;;; Structs
 
 (cl-defstruct magit-todos-item
@@ -396,14 +421,17 @@ used."
   (interactive)
   (pcase-let* ((item (magit-current-section))
                ((eieio value) item)
-               ((cl-struct magit-todos-item filename position line column) value))
+               ((cl-struct magit-todos-item filename position line column keyword) value))
     (switch-to-buffer (or (find-buffer-visiting filename)
                           (find-file-noselect filename)))
     (if position
         (goto-char position)
       (goto-char (point-min))
       (forward-line (1- line))
-      (forward-char column))))
+      (if column
+          (forward-char column)
+        (re-search-forward keyword (line-end-position) t)
+        (goto-char (match-beginning 0))))))
 
 ;;;; Functions
 
@@ -806,6 +834,44 @@ This is a copy of `async-start-process' that does not override
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
                                  collect item
                                  do (forward-line 1)))
+               do (forward-line 1)))))
+
+;;;;; git-grep
+
+(cl-defun magit-todos--git-grep-scan-async (&key magit-status-buffer directory depth _timeout)
+  "Return to-dos in DIRECTORY, scanning with git-grep."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let* ((depth (number-to-string (1+ depth)))
+         (process-connection-type 'pipe)
+         (command (list "--no-pager" "grep" "--full-name"
+                        "--no-color" "-n" "--max-depth" depth
+                        "-P" "-e" magit-todos-ag-search-regexp
+                        "--" directory)))
+    (when magit-todos-git-grep-args
+      (setq command (append magit-todos-git-grep-args command)))
+    (push magit-git-executable command)
+    (when magit-todos-nice
+      (setq command (append (list "nice" "-n5") command)))
+    (magit-todos--async-start-process "magit-todos--git-grep-scan-async"
+      :command command
+      :finish-func (apply-partially #'magit-todos--git-grep-scan-async-callback magit-status-buffer))))
+
+(defun magit-todos--git-grep-scan-async-callback (magit-status-buffer process)
+  "Callback for `magit-todos--git-grep-scan-async'."
+  ;; See <https://github.com/jwiegley/emacs-async/issues/101>
+  (when (= 124 (process-exit-status process))
+    (error "git-grep timed out.  You may want to increase `magit-todos-git-grep-timeout'"))
+  (with-current-buffer (process-buffer process)
+    (goto-char (point-min))
+    (magit-todos--insert-items-callback
+      magit-status-buffer
+      (cl-loop for item = (magit-todos--next-item magit-todos-git-grep-result-regexp)
+               while item
+               ;; TODO: Ignore things with args to git-grep instead of here
+               unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                               thereis (s-suffix? suffix (magit-todos-item-filename item)))
+               collect item
                do (forward-line 1)))))
 
 ;;;;; Formatters
