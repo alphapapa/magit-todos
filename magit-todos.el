@@ -90,11 +90,6 @@
   "List of to-do keywords.
 Set automatically by `magit-todos-keywords' customization.")
 
-(defvar magit-todos-search-regexp nil
-  "Regular expression matching desired to-do keywords in source and Org files.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
 (defvar magit-todos-grep-result-regexp nil
   "Regular expression for grep results.
 This should be set automatically by customizing
@@ -112,8 +107,13 @@ This should be set automatically by customizing
 
 ;; TODO: Remove extra search regexp var, no longer needed without internal scanner.
 
-(defvar magit-todos-ag-search-regexp nil
-  "Regular expression for ag (and rg).
+(defvar magit-todos-git-grep-result-regexp nil
+  "Regular expression for git-grep results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-search-regexp nil
+  "Regular expression to match keyword items with rg, ag, and git-grep.
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
@@ -181,22 +181,21 @@ regular expression."
                            (list value))))
            (setq keywords (seq-difference keywords magit-todos-ignored-keywords)
                  magit-todos-keywords-list keywords
-                 magit-todos-search-regexp (rx-to-string `(or
-                                                           ;; Org item
-                                                           (seq bol (group (1+ "*"))
-                                                                (1+ blank)
-                                                                (group (or ,@keywords))
-                                                                (1+ space)
-                                                                (group (1+ not-newline)))
-                                                           ;; Non-Org
-                                                           (seq (group (or bol (1+ blank)))
-                                                                (group (or ,@keywords))
-                                                                ;; Require the : to avoid spurious items
-                                                                ":"
-                                                                (optional (1+ blank)
-                                                                          (group (1+ not-newline))))))
                  ;; NOTE: The pcre2el library completely saves us here.  It is fantastic.
-                 magit-todos-ag-search-regexp (rxt-elisp-to-pcre magit-todos-search-regexp)
+                 magit-todos-search-regexp (rxt-elisp-to-pcre (rx-to-string `(or
+                                                                              ;; Org item
+                                                                              (seq bol (group (1+ "*"))
+                                                                                   (1+ blank)
+                                                                                   (group (or ,@keywords))
+                                                                                   (1+ space)
+                                                                                   (group (1+ not-newline)))
+                                                                              ;; Non-Org
+                                                                              (seq (group (or bol (1+ blank)))
+                                                                                   (group (or ,@keywords))
+                                                                                   ;; Require the : to avoid spurious items
+                                                                                   ":"
+                                                                                   (optional (1+ blank)
+                                                                                             (group (1+ not-newline)))))))
                  magit-todos-grep-result-regexp (rx-to-string `(seq bol
                                                                     ;; Filename
                                                                     (group-n 8 (1+ (not (any ":")))) ":"
@@ -236,15 +235,31 @@ regular expression."
                                                                   (group-n 4 (or ,@keywords)) (optional ":")
                                                                   (optional (1+ blank)
                                                                             ;; Description
-                                                                            (group-n 5 (1+ not-newline)))))))))
+                                                                            (group-n 5 (1+ not-newline)))))
+
+                 magit-todos-git-grep-result-regexp (rx-to-string
+                                                     `(seq bol
+                                                           ;; Filename
+                                                           (group-n 8 (1+ (not (any ":")))) ":"
+                                                           ;; Line
+                                                           (group-n 2 (1+ digit)) ":"
+                                                           ;; Org level
+                                                           (optional (group-n 1 (1+ "*")))
+                                                           (minimal-match (0+ not-newline))
+                                                           ;; Keyword
+                                                           (group-n 4 (or ,@keywords)) (optional ":")
+                                                           (optional (1+ blank)
+                                                                     ;; Description
+                                                                     (group-n 5 (1+ not-newline)))))))))
 
 (defcustom magit-todos-scan-fn nil
   "File scanning method.
-\"Automatic\" will attempt to use rg, ag, and find-grep, in that
-order. "
+\"Automatic\" will attempt to use rg, ag, git-grep, and
+find-grep, in that order. "
   :type '(choice (const :tag "Automatic" nil)
-                 (const :tag "ag" magit-todos--ag-scan-async)
                  (const :tag "rg" magit-todos--rg-scan-async)
+                 (const :tag "ag" magit-todos--ag-scan-async)
+                 (const :tag "git-grep" magit-todos--git-grep-scan-async)
                  (const :tag "find-grep" magit-todos--grep-scan-async)
                  (function :tag "Custom function"))
   :set (lambda (option value)
@@ -254,6 +269,10 @@ order. "
                               #'magit-todos--rg-scan-async)
                              ((executable-find "ag")
                               #'magit-todos--ag-scan-async)
+                             ((not (string-match "Perl-compatible"
+                                                 (shell-command-to-string "git grep --max-depth 0 --perl-regexp --no-index --q magit-todos-test-string")))
+                              ;; If Git does not complain about Perl-compatible regexps, it should have been built with libpcre support.
+                              #'magit-todos--git-grep-scan-async)
                              ((string-match (rx "-P, --perl-regexp") (shell-command-to-string "grep --help"))
                               #'magit-todos--grep-scan-async)
                              (t (error "magit-todos: Unable to find rg, ag, or a grep command that supports the --perl-regexp option")))))
@@ -337,6 +356,10 @@ used."
   "Extra arguments to pass to rg."
   :type '(repeat string))
 
+(defcustom magit-todos-git-grep-args nil
+  "Extra arguments to pass to git-grep."
+  :type '(repeat string))
+
 ;;;; Structs
 
 (cl-defstruct magit-todos-item
@@ -393,12 +416,15 @@ If PEEK is non-nil, keep focus in status buffer window."
 (defun magit-todos--goto-item (item)
   "Move point to ITEM.
 Assumes current buffer is ITEM's buffer."
-  (pcase-let* (((cl-struct magit-todos-item position line column) item))
+  (pcase-let* (((cl-struct magit-todos-item position line column keyword) item))
     (if position
         (goto-char position)
       (goto-char (point-min))
       (forward-line (1- line))
-      (forward-char column))))
+      (if column
+          (forward-char column)
+        (re-search-forward keyword (line-end-position) t)
+        (goto-char (match-beginning 0))))))
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer.
@@ -695,7 +721,7 @@ This is a copy of `async-start-process' that does not override
                            ;; all the keywords, but pcre2el doesn't convert to "extended regular
                            ;; expressions", so this will have to do.  Maybe we should test whether
                            ;; the version of grep installed supports "-P".
-                           (list "-exec" "grep" "-bPH" magit-todos-ag-search-regexp "{}" "+")))))
+                           (list "-exec" "grep" "-bPH" magit-todos-search-regexp "{}" "+")))))
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
     (magit-todos--async-start-process "magit-todos--grep-scan-async"
@@ -727,7 +753,7 @@ This is a copy of `async-start-process' that does not override
   (let* ((depth (number-to-string (1+ depth)))
          (process-connection-type 'pipe)
          (command (list "--ackmate" "--depth" depth
-                        magit-todos-ag-search-regexp directory)))
+                        magit-todos-search-regexp directory)))
     (when magit-todos-ag-args
       (setq command (append magit-todos-ag-args command)))
     (push "ag" command)
@@ -765,7 +791,7 @@ This is a copy of `async-start-process' that does not override
   (let* ((depth (number-to-string (1+ depth)))
          (process-connection-type 'pipe)
          (command (list "--column" "--maxdepth" depth
-                        magit-todos-ag-search-regexp directory)))
+                        magit-todos-search-regexp directory)))
     (when magit-todos-rg-args
       (setq command (append magit-todos-rg-args command)))
     (push "rg" command)
@@ -792,6 +818,41 @@ This is a copy of `async-start-process' that does not override
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
                                  collect item
                                  do (forward-line 1)))
+               do (forward-line 1)))))
+
+;;;;; git-grep
+
+(cl-defun magit-todos--git-grep-scan-async (&key magit-status-buffer directory depth _timeout)
+  "Return to-dos in DIRECTORY, scanning with git-grep."
+  ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
+  ;; capture them and pass them in.
+  (let* ((depth (number-to-string (1+ depth)))
+         (process-connection-type 'pipe)
+         (command (list "--no-pager" "grep" "--full-name"
+                        "--no-color" "-n" "--max-depth" depth
+                        "--perl-regexp" "-e" magit-todos-search-regexp
+                        "--" directory)))
+    (when magit-todos-git-grep-args
+      (setq command (append magit-todos-git-grep-args command)))
+    (push magit-git-executable command)
+    (when magit-todos-nice
+      (setq command (append (list "nice" "-n5") command)))
+    (magit-todos--async-start-process "magit-todos--git-grep-scan-async"
+      :command command
+      :finish-func (apply-partially #'magit-todos--git-grep-scan-async-callback magit-status-buffer))))
+
+(defun magit-todos--git-grep-scan-async-callback (magit-status-buffer process)
+  "Callback for `magit-todos--git-grep-scan-async'."
+  (with-current-buffer (process-buffer process)
+    (goto-char (point-min))
+    (magit-todos--insert-items-callback
+      magit-status-buffer
+      (cl-loop for item = (magit-todos--next-item magit-todos-git-grep-result-regexp)
+               while item
+               ;; TODO: Ignore things with args to git-grep instead of here
+               unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
+                               thereis (s-suffix? suffix (magit-todos-item-filename item)))
+               collect item
                do (forward-line 1)))))
 
 ;;;;; Formatters
