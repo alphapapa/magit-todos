@@ -350,10 +350,17 @@ used."
   :group 'magit-todos
   :global t
   (if magit-todos-mode
-      (magit-add-section-hook 'magit-status-sections-hook
-                              #'magit-todos--insert-items
-                              'magit-insert-staged-changes
-                              'append)
+      (progn
+        (if (lookup-key magit-status-mode-map "jT")
+            (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")
+          (define-key magit-status-mode-map "jT" #'magit-jump-to-todos))
+        (magit-add-section-hook 'magit-status-sections-hook
+                                #'magit-todos--insert-items
+                                'magit-insert-staged-changes
+                                'append))
+    ;; Disable mode
+    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-jump-to-todos)
+      (define-key magit-status-mode-map "jT" nil))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-items)))
 
 (defun magit-todos--goto-item ()
@@ -815,10 +822,6 @@ This is a copy of `async-start-process' that does not override
 ;;;;; Jump to section
 
 (magit-define-section-jumper magit-jump-to-todos "TODOs" todos)
-
-(if (lookup-key magit-status-mode-map "jT")
-    (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")
-  (define-key magit-status-mode-map "jT" #'magit-jump-to-todos))
 
 ;;;; Footer
 
