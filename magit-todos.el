@@ -264,7 +264,7 @@ order. "
 
 (defcustom magit-todos-auto-group-items 20
   "Whether or when to automatically group items."
-  :type '(choice (integer :tag "When there are N or more items")
+  :type '(choice (integer :tag "When there are more than this many items")
                  (const :tag "Always" always)
                  (const :tag "Never" never)))
 
