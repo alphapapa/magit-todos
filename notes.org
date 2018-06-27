@@ -1,11 +1,12 @@
-* Ideas
-** Improving performance
+#+PROPERTY: LOGGING nil
 
-*** Avoid refreshing section too often
+* Ideas
+
+** TODO Avoid refreshing section too often
 
 On large repos, updating the section from scratch takes some time.  It would be good to avoid doing this too often in large repos.
 
-**** Option for when to refresh it
+*** TODO Option for when to refresh it
 
 There should be an option for how often to refresh the to-dos section:
 
@@ -15,6 +16,30 @@ There should be an option for how often to refresh the to-dos section:
 
 =memoize= can be used to implement this, probably with a proxy function to handle always/manually.
 
-**** Set option automatically in large repos
+*** TODO Set option automatically in large repos
 
 The parsing/insertion should be timed, and if it takes too long, the previous option should be automatically set to timeout or manual.
+
+** TODO Restore timeout feature
+
+Not strictly necessary anymore, but still good to have, and should be simple to do.
+
+** TODO Use pop-to-buffer instead of switch-to-buffer
+
+Akira Komamura explained:
+
+#+BEGIN_QUOTE
+Also, I think pop-to-buffer-same-window/pop-to-buffer is better than switch-to-buffer/switch-to-buffer-other-window, because it is based on display-buffer. display-buffer allows you to customize its behaviours through display-buffer-alist variable. shackle leverages this feature.
+#+END_QUOTE
+
+** TODO [[https://github.com/alphapapa/magit-todos/issues/13#issuecomment-400348224][Add "peek" command]]
+
+To show the item in another window while keeping the status buffer the active window.  Akira:
+
+#+BEGIN_QUOTE
+I thought of the same feature. I also think there should be another command which displays the location but keeps focus in the status window, which should be bound at SPC:
+
+   (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos--show-item)
+
+I tried to implement this feature using display-buffer, but somehow it didn't work.
+#+END_QUOTE
