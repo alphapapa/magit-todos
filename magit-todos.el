@@ -799,12 +799,10 @@ This is a copy of `async-start-process' that does not override
 
 (defun magit-todos--sort-by-keyword (a b)
   "Return non-nil if A's keyword is before B's in `magit-todos-keywords-list'."
-  (cl-flet ((item-keyword (item)
-                          (magit-todos-item-keyword item))
-            (keyword-index (keyword)
+  (cl-flet ((keyword-index (keyword)
                            (or (-elem-index keyword magit-todos-keywords-list) 0)))
-    (< (keyword-index (item-keyword a))
-       (keyword-index (item-keyword b)))))
+    (< (keyword-index (magit-todos-item-keyword a))
+       (keyword-index (magit-todos-item-keyword b)))))
 
 (defun magit-todos--sort-by-position (a b)
   "Return non-nil if A's position in its file is before B's."
