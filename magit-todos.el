@@ -607,6 +607,30 @@ relative to the repo's directory (i.e. this would not be very
 useful with absolute paths)."
   (car (f-split (magit-todos-item-filename item))))
 
+(cl-defun magit-todos--async-start-process (name &key command finish-func)
+  "Start the executable PROGRAM asynchronously.  See `async-start'.
+PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
+process object when done.  If FINISH-FUNC is nil, the future
+object will return the process object when the program is
+finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
+working directory.
+
+This is a copy of `async-start-process' that does not override
+`process-connection-type'.  It also uses keyword arguments."
+  (declare (indent defun))
+  ;; TODO: Drop this function when possible.  See
+  ;; <https://github.com/jwiegley/emacs-async/issues/102>.
+  (let* ((args (cdr command))
+         (command (car command))
+         (buf (generate-new-buffer (concat "*" name "*")))
+         (proc (apply #'start-process name buf command args)))
+    (with-current-buffer buf
+      (set (make-local-variable 'async-callback) finish-func)
+      (set-process-sentinel proc #'async-when-done)
+      (unless (string= name "emacs")
+        (set (make-local-variable 'async-callback-for-process) t))
+      proc)))
+
 ;;;;; grep
 
 (cl-defun magit-todos--grep-scan-async (&key magit-status-buffer directory depth)
@@ -714,30 +738,6 @@ useful with absolute paths)."
                do (forward-line 1)))))
 
 ;;;;; rg
-
-(cl-defun magit-todos--async-start-process (name &key command finish-func)
-  "Start the executable PROGRAM asynchronously.  See `async-start'.
-PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
-process object when done.  If FINISH-FUNC is nil, the future
-object will return the process object when the program is
-finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
-working directory.
-
-This is a copy of `async-start-process' that does not override
-`process-connection-type'.  It also uses keyword arguments."
-  (declare (indent defun))
-  ;; TODO: Drop this function when possible.  See
-  ;; <https://github.com/jwiegley/emacs-async/issues/102>.
-  (let* ((args (cdr command))
-         (command (car command))
-         (buf (generate-new-buffer (concat "*" name "*")))
-         (proc (apply #'start-process name buf command args)))
-    (with-current-buffer buf
-      (set (make-local-variable 'async-callback) finish-func)
-      (set-process-sentinel proc #'async-when-done)
-      (unless (string= name "emacs")
-        (set (make-local-variable 'async-callback-for-process) t))
-      proc)))
 
 (cl-defun magit-todos--rg-scan-async (&key magit-status-buffer directory depth)
   "Return to-dos in DIRECTORY, scanning with rg."
