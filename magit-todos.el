@@ -127,7 +127,8 @@ magit-status buffer.")
 
 (defvar magit-todo-section-map
   (let ((m (make-sparse-keymap)))
-    (define-key m [remap magit-visit-thing] #'magit-todos--goto-item)
+    (define-key m [remap magit-visit-thing] #'magit-todos-jump-to-item)
+    (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
     m))
 
 (defvar-local magit-todos-show-filenames nil
@@ -363,21 +364,39 @@ used."
       (define-key magit-status-mode-map "jT" nil))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-items)))
 
-(defun magit-todos--goto-item ()
-  "Go to to-do item at point."
+(defun magit-todos-jump-to-item (&optional peek)
+  "Show current item.
+If PEEK is non-nil, keep focus in status buffer window."
   (interactive)
-  (pcase-let* ((item (magit-current-section))
-               ((eieio value) item)
-               ((cl-struct magit-todos-item filename position line column) value))
-    (switch-to-buffer (or (find-buffer-visiting filename)
-                          (find-file-noselect filename)))
+  (let* ((status-window (selected-window))
+         (item (oref (magit-current-section) value))
+         (buffer (magit-todos--item-buffer item)))
+    (pop-to-buffer buffer)
+    (magit-todos--goto-item item)
+    (when peek
+      (select-window status-window))))
+
+(defun magit-todos-peek-at-item ()
+  "Peek at current item."
+  (interactive)
+  (magit-todos--find-item 'peek))
+
+;;;; Functions
+
+(defun magit-todos--item-buffer (item)
+  "Return buffer visiting ITEM."
+  (or (find-buffer-visiting (magit-todos-item-filename item))
+      (find-file-noselect (magit-todos-item-filename item))))
+
+(defun magit-todos--goto-item (item)
+  "Move point to ITEM.
+Assumes current buffer is ITEM's buffer."
+  (pcase-let* (((cl-struct magit-todos-item position line column) item))
     (if position
         (goto-char position)
       (goto-char (point-min))
       (forward-line (1- line))
       (forward-char column))))
-
-;;;; Functions
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer.

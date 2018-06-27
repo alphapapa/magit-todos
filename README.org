@@ -69,6 +69,9 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 +  Customize settings in the =magit-todos= group.
 +  Jump to the to-do list in a Magit status buffer by pressing @@html:<kbd>@@j T@@html:</kbd>@@.
++  With point on a to-do item:
+     -  Show the item by pressing @@html:<kbd>@@RET@@html:</kbd>@@
+     -  Peek at the item by pressing @@html:<kbd>@@SPC@@html:</kbd>@@
 
 ** Credits
 
