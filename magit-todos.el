@@ -469,7 +469,7 @@ sections."
     (if (and (consp group-fns)
              (> (length group-fns) 0))
         ;; Insert more sections
-        (aprog1                         ; `aprog1' is really handy here.
+        (aprog1  ; `aprog1' is really handy here.
             (magit-insert-section ((eval type))
               (magit-insert-heading heading)
               (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
@@ -531,7 +531,7 @@ automatically hidden halves at each deeper level."
                           (_ (/ magit-todos-max-items (* depth 2)))))
            ;; HACK: We have to do this manually because the set-visibility-hook doesn't work.
            (magit-section-hide section)
-         ;; Not hidden: set slot manually (necessary for some reason)
+         ;; Not hidden: show section manually (necessary for some reason)
          (magit-section-show section)))))
 
 (defun magit-todos--skip-section (condition)
