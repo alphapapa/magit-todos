@@ -379,7 +379,7 @@ If PEEK is non-nil, keep focus in status buffer window."
 (defun magit-todos-peek-at-item ()
   "Peek at current item."
   (interactive)
-  (magit-todos--find-item 'peek))
+  (magit-todos-jump-to-item 'peek))
 
 ;;;; Functions
 
