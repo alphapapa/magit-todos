@@ -778,13 +778,14 @@ This is a copy of `async-start-process' that does not override
 ;;;;; Formatters
 
 (defun magit-todos--format-plain (item)
-  "Format ITEM from a non-Org file."
+  "Return ITEM formatted as from a non-Org file."
   (format "%s: %s"
-          (propertize (magit-todos-item-keyword item) 'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
+          (propertize (magit-todos-item-keyword item)
+                      'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
           (or (magit-todos-item-description item) "")))
 
 (defun magit-todos--format-org (item)
-  "Format ITEM from an Org file."
+  "Return ITEM formatted as from an Org file."
   (magit-todos-fontify-like-in-org-mode
    (concat (magit-todos-item-org-level item) " "
            (magit-todos-item-keyword item) " "
