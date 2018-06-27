@@ -273,40 +273,6 @@ order."
                          (const :tag "By keyword" magit-todos-item-keyword)
                          (const :tag "By first path component" magit-todos-item-first-path-component))))
 
-(defcustom magit-todos-recursive nil
-  "Recurse into subdirectories when looking for to-do items.
-This can take a long time in a large repo, so this defaults to
-nil.  You might like to use a dir-local variable to set this in
-certain repos."
-  :type 'boolean)
-
-(defcustom magit-todos-internal-scan-files-fn #'magit-list-files
-  "Function that returns a list of files in a repo to scan for to-do items.
-This is used when scanning from within Emacs, as opposed to using
-an external tool.  See `magit-todos-recursive' for recursive
-settings.  The function should take one argument, the path to the
-repo's working tree.  Note that if it recurses into
-subdirectories, it is responsible for skipping the \".git\"
-directory."
-  :type '(choice (const :tag "Files tracked by git" #'magit-list-files)
-                 (const :tag "All files in working tree" #'magit-todos--working-tree-files)
-                 (function :tag "Custom function")))
-
-(defvar magit-todos-ignore-directories-always
-  '(".git" ".cask")
-  ;; Must be defined before `magit-todos-ignore-directories'.
-  "Directories which should always be ignored.
-Users should customize `magit-todos-ignore-directories'.")
-
-(defcustom magit-todos-ignore-directories nil
-  "Directories to ignore in repos.
-Directories listed in `magit-todos-ignore-directories-always' are
-always ignored, even if not listed here."
-  :type '(repeat string)
-  :set (lambda (option value)
-         (set-default option value)
-         (setq-default magit-todos-ignored-directories (seq-uniq (append magit-todos-ignore-directories-always value)))))
-
 (defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
   "Ignore files with these suffixes."
   :type '(repeat string))
