@@ -84,6 +84,8 @@
 (require 'pcre2el)
 (require 's)
 
+(declare-function 'org-show-entry "org")
+
 ;;;; Variables
 
 (defvar magit-todos-keywords-list nil
@@ -396,7 +398,9 @@ Assumes current buffer is ITEM's buffer."
         (goto-char position)
       (goto-char (point-min))
       (forward-line (1- line))
-      (forward-char column))))
+      (forward-char column)
+      (when (derived-mode-p 'org-mode)
+        (org-show-entry)))))
 
 (defun magit-todos--insert-items ()
   "Insert to-do items into current buffer.
