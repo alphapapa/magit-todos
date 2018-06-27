@@ -336,6 +336,11 @@ used."
   "Extra arguments to pass to rg."
   :type '(repeat string))
 
+(defcustom magit-todos-window-setup 'same
+  "Window to show the actual location of a todo."
+  :type '(choice (const :tag "Same window" same)
+                 (const :tag "Other window" other)))
+
 ;;;; Structs
 
 (cl-defstruct magit-todos-item
@@ -369,13 +374,16 @@ used."
   (pcase-let* ((item (magit-current-section))
                ((eieio value) item)
                ((cl-struct magit-todos-item filename position line column) value))
-    (switch-to-buffer (or (find-buffer-visiting filename)
-                          (find-file-noselect filename)))
-    (if position
-        (goto-char position)
-      (goto-char (point-min))
-      (forward-line (1- line))
-      (forward-char column))))
+    (with-current-buffer (or (find-buffer-visiting filename)
+                             (find-file-noselect filename))
+      (cl-case magit-todos-window-setup
+        (other (pop-to-buffer (current-buffer)))
+        (otherwise (pop-to-buffer-same-window (current-buffer))))
+      (if position
+          (goto-char position)
+        (goto-char (point-min))
+        (forward-line (1- line))
+        (forward-char column)))))
 
 ;;;; Functions
 
