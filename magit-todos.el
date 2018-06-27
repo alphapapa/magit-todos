@@ -119,8 +119,9 @@ This should be set automatically by customizing
   "Automatically set by `magit-todos--repo-todos'.")
 
 (defvar-local magit-todos-active-scan nil
-  "The current scan's process.  Used to avoid running multiple
-  simultaneous scans for a magit-status buffer.")
+  "The current scan's process.
+Used to avoid running multiple simultaneous scans for a
+magit-status buffer.")
 
 (defvar magit-todo-section-map
   (let ((m (make-sparse-keymap)))
