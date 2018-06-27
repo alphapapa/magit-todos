@@ -110,6 +110,8 @@ This should be set automatically by customizing
 This should be set automatically by customizing
 `mrgit-todos-keywords'.")
 
+;; TODO: Remove extra search regexp var, no longer needed without internal scanner.
+
 (defvar magit-todos-ag-search-regexp nil
   "Regular expression for ag (and rg).
 This should be set automatically by customizing
@@ -323,6 +325,8 @@ used."
                  (const :tag "After untracked files" untracked)
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
+
+;; TODO: Split each string in these extra args, because users won't know to insert them separately.
 
 (defcustom magit-todos-ag-args nil
   "Extra arguments to pass to ag."
