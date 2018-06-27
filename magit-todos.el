@@ -554,8 +554,6 @@ FILENAME is added to the item as its filename.  Sets match data.
 This should be called in a process's output buffer from one of
 the async callback functions.  The calling function should
 advance to the next line."
-  ;; FIXME: Should we bind `case-fold-search' elsewhere so it doesn't happen every time this
-  ;; function is called?
   (let ((case-fold-search magit-todos-ignore-case))
     (when (re-search-forward regexp (line-end-position) t)
       (make-magit-todos-item :filename (or filename
