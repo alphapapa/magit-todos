@@ -19,8 +19,32 @@ There should be an option for how often to refresh the to-dos section:
 *** TODO Set option automatically in large repos
 
 The parsing/insertion should be timed, and if it takes too long, the previous option should be automatically set to timeout or manual.
-
 ** TODO Restore timeout feature
 
 Not strictly necessary anymore, but still good to have, and should be simple to do.
 
+** TODO Ignore files/directories in scanners
+
+*** TODO rg
+
+Should probably use =--glob=:
+
+#+BEGIN_EXAMPLE
+    -g, --glob <GLOB>...                    
+            Include or exclude files and directories for searching that match the given
+            glob. This always overrides any other ignore logic. Multiple glob flags may be
+            used. Globbing rules match .gitignore globs. Precede a glob with a ! to exclude
+            it.
+
+        --iglob <GLOB>...                   
+            Include or exclude files and directories for searching that match the given
+            glob. This always overrides any other ignore logic. Multiple glob flags may be
+            used. Globbing rules match .gitignore globs. Precede a glob with a ! to exclude
+            it. Globs are matched case insensitively.
+#+END_EXAMPLE
+
+*** TODO ag
+
+*** TODO git-grep
+
+*** TODO find-grep
