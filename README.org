@@ -2,7 +2,7 @@
 <a href=https://alphapapa.github.io/dont-tread-on-emacs/><img src="dont-tread-on-emacs-150.png" align="right"></a>
 #+END_HTML
 
-* magit-todos
+* magit-todos [[https://travis-ci.org/alphapapa/magit-todos.svg?branch=master]]
 
   [[https://melpa.org/#/magit-todos][file:https://melpa.org/packages/magit-todos-badge.svg]] [[https://stable.melpa.org/#/magit-todos][file:https://stable.melpa.org/packages/magit-todos-badge.svg]]
 

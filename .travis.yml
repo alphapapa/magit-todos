@@ -1,0 +1,27 @@
+language: generic
+sudo: required
+dist: trusty
+cache:
+- directories:
+  - "$HOME/emacs"
+matrix:
+  fast_finish: true
+  allow_failures:
+  - env: EMACS_VERSION=25.1
+  - env: EMACS_VERSION=snapshot
+env:
+  matrix:
+  - EMACS_VERSION=25.1
+  - EMACS_VERSION=25.2
+  - EMACS_VERSION=25.3
+  - EMACS_VERSION=26.1
+  - EMACS_VERSION=snapshot
+before_install:
+- make emake.mk
+- make setup
+install:
+- make .elpa
+script:
+- make test                     # test uncompiled
+- make compile                  # test compilation
+- make test                     # test compiled

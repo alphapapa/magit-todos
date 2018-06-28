@@ -1,0 +1,6 @@
+/.elpa/
+/.elpa.test/
+/emacs-travis.mk
+/emake.el
+/emake.mk
+*.elc
