@@ -346,8 +346,6 @@ used."
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
 
-;; TODO: Split each string in these extra args, because users won't know to insert them separately.
-
 (defcustom magit-todos-ag-args nil
   "Extra arguments to pass to ag."
   :type '(repeat string))
@@ -755,7 +753,9 @@ This is a copy of `async-start-process' that does not override
          (command (list "--ackmate" "--depth" depth
                         magit-todos-search-regexp directory)))
     (when magit-todos-ag-args
-      (setq command (append magit-todos-ag-args command)))
+      (setq command (append (-flatten (--map (s-split (rx (1+ space)) 'omit-nulls)
+                                             magit-todos-ag-args))
+                            command)))
     (push "ag" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
@@ -793,7 +793,9 @@ This is a copy of `async-start-process' that does not override
          (command (list "--column" "--maxdepth" depth
                         magit-todos-search-regexp directory)))
     (when magit-todos-rg-args
-      (setq command (append magit-todos-rg-args command)))
+      (setq command (append (-flatten (--map (s-split (rx (1+ space)) 'omit-nulls)
+                                             magit-todos-rg-args))
+                            command)))
     (push "rg" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
@@ -833,7 +835,9 @@ This is a copy of `async-start-process' that does not override
                         "--perl-regexp" "-e" magit-todos-search-regexp
                         "--" directory)))
     (when magit-todos-git-grep-args
-      (setq command (append magit-todos-git-grep-args command)))
+      (setq command (append (-flatten (--map (s-split (rx (1+ space)) 'omit-nulls)
+                                             magit-todos-git-grep-args))
+                            command)))
     (push magit-git-executable command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
