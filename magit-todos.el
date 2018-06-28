@@ -108,7 +108,7 @@ This should be set automatically by customizing
 (defvar magit-todos-rg-result-regexp nil
   "Regular expression for rg results.
 This should be set automatically by customizing
-`mrgit-todos-keywords'.")
+`magit-todos-keywords'.")
 
 ;; TODO: Remove extra search regexp var, no longer needed without internal scanner.
 
