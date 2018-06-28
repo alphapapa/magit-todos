@@ -373,6 +373,8 @@ If PEEK is non-nil, keep focus in status buffer window."
          (buffer (magit-todos--item-buffer item)))
     (pop-to-buffer buffer)
     (magit-todos--goto-item item)
+    (when (derived-mode-p 'org-mode)
+      (org-show-entry))
     (when peek
       (select-window status-window))))
 
