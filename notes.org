@@ -24,22 +24,3 @@ The parsing/insertion should be timed, and if it takes too long, the previous op
 
 Not strictly necessary anymore, but still good to have, and should be simple to do.
 
-** TODO Use pop-to-buffer instead of switch-to-buffer
-
-Akira Komamura explained:
-
-#+BEGIN_QUOTE
-Also, I think pop-to-buffer-same-window/pop-to-buffer is better than switch-to-buffer/switch-to-buffer-other-window, because it is based on display-buffer. display-buffer allows you to customize its behaviours through display-buffer-alist variable. shackle leverages this feature.
-#+END_QUOTE
-
-** TODO [[https://github.com/alphapapa/magit-todos/issues/13#issuecomment-400348224][Add "peek" command]]
-
-To show the item in another window while keeping the status buffer the active window.  Akira:
-
-#+BEGIN_QUOTE
-I thought of the same feature. I also think there should be another command which displays the location but keeps focus in the status window, which should be bound at SPC:
-
-   (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos--show-item)
-
-I tried to implement this feature using display-buffer, but somehow it didn't work.
-#+END_QUOTE
