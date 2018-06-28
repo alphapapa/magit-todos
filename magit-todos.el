@@ -503,7 +503,7 @@ sections."
   ;; variable gets filled with extra entries with incorrect visibility states, and then `alist-get'
   ;; gets the wrong value.  Need to see if that happens when magit-todos-mode is off.
 
-  ;; FIXME: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
+  ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
   (let* ((indent (s-repeat depth " "))
