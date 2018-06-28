@@ -105,8 +105,6 @@ This should be set automatically by customizing
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
-;; TODO: Remove extra search regexp var, no longer needed without internal scanner.
-
 (defvar magit-todos-git-grep-result-regexp nil
   "Regular expression for git-grep results.
 This should be set automatically by customizing
