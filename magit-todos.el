@@ -733,7 +733,6 @@ This is a copy of `async-start-process' that does not override
       magit-status-buffer
       (cl-loop for item = (magit-todos--next-item magit-todos-grep-result-regexp)
                while item
-               ;; TODO: Ignore things with args to find instead of here
                unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                thereis (s-suffix? suffix (magit-todos-item-filename item)))
                do (cl-callf f-relative (magit-todos-item-filename item) default-directory)
@@ -773,7 +772,6 @@ This is a copy of `async-start-process' that does not override
                         (forward-line 1)
                         (cl-loop for item = (magit-todos--next-item magit-todos-ag-result-regexp filename)
                                  while item
-                                 ;; TODO: Ignore things with args to ag instead of here
                                  unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
                                  collect item
@@ -813,7 +811,6 @@ This is a copy of `async-start-process' that does not override
                         (forward-line 1)
                         (cl-loop for item = (magit-todos--next-item magit-todos-rg-result-regexp filename)
                                  while item
-                                 ;; TODO: Ignore things with args to rg instead of here
                                  unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
                                  collect item
@@ -851,7 +848,6 @@ This is a copy of `async-start-process' that does not override
       magit-status-buffer
       (cl-loop for item = (magit-todos--next-item magit-todos-git-grep-result-regexp)
                while item
-               ;; TODO: Ignore things with args to git-grep instead of here
                unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                thereis (s-suffix? suffix (magit-todos-item-filename item)))
                collect item
