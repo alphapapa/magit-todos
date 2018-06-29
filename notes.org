@@ -19,9 +19,18 @@ There should be an option for how often to refresh the to-dos section:
 *** TODO Set option automatically in large repos
 
 The parsing/insertion should be timed, and if it takes too long, the previous option should be automatically set to timeout or manual.
-** TODO Restore timeout feature
 
-Not strictly necessary anymore, but still good to have, and should be simple to do.
+** MAYBE Restore timeout feature
+
+Now that we're using external scanners, I'm not sure this is important.  And if we implement a feature to avoid scanning too often in big repos, it probably won't be.
+
+** TODO Kill outstanding scans when status buffer is killed
+
+In case a long-running scan on a big repo is still running when the Magit status buffer is killed, it would be good to kill the scan process.
+
+** MAYBE Option to limit depth of Org items
+
+e.g. I don't necessarily need to see each subtask under "Ignore files/directories in scanners".
 
 ** TODO Ignore files/directories in scanners
 
