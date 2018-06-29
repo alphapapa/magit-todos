@@ -322,7 +322,6 @@ necessary."
   "Maximum depth of files in repo working tree to scan for to-dos.
 Deeper scans can be slow in large projects.  You may wish to set
 this in a directory-local variable for certain projects."
-  ;; TODO: Automatic depth setting that works well in large repos
   :type '(choice (const :tag "Repo root directory only" 0)
                  integer))
 
