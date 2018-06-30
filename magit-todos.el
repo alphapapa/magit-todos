@@ -143,6 +143,24 @@ Set automatically depending on grouping.")
   "Apply keyword faces to group keyword headers."
   :type 'boolean)
 
+(defcustom magit-todos-require-colon t
+  "Only show items whose keywords are followed by a colon.
+i.e. when non-nil, only items like \"TODO: foo\" are shown, not
+\"TODO foo\"."
+  :type 'boolean
+  :set (lambda (option value)
+         (set-default option value)
+         (when (boundp 'magit-todos-keywords)
+           ;; Avoid setting `magit-todos-keywords' before it's defined.
+
+           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
+           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
+           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
+           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
+           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
+           ;; and now it's gone, but the manual still mentions it. ???
+           (custom-reevaluate-setting 'magit-todos-keywords))))
+
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
   :type '(repeat string)
@@ -190,8 +208,9 @@ regular expression."
                                                                               ;; Non-Org
                                                                               (seq (group (or bol (1+ blank)))
                                                                                    (group (or ,@keywords))
-                                                                                   ;; Require the : to avoid spurious items
-                                                                                   ":"
+                                                                                   (eval (if magit-todos-require-colon
+                                                                                             ":"
+                                                                                           `(or eol blank (not (any alnum)))))
                                                                                    (optional (1+ blank)
                                                                                              (group (1+ not-newline)))))))
                  magit-todos-grep-result-regexp (rx-to-string `(seq bol
