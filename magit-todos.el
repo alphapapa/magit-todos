@@ -123,7 +123,10 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
 
-(defvar magit-todo-section-map
+(defvar magit-todos-section-map
+  "Integrate the TODOs section in the magit section map.
+See https://magit.vc/manual/magit/Creating-Sections.html for more
+details about how section maps work."
   (let ((m (make-sparse-keymap)))
     (define-key m [remap magit-visit-thing] #'magit-todos-jump-to-item)
     (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
