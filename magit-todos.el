@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 0.1-pre
-;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo) (magit) (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.7.4") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -123,7 +123,10 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
 
-(defvar magit-todo-section-map
+(defvar magit-todos-section-map
+  "Integrate the TODOs section in the magit section map.
+See https://magit.vc/manual/magit/Creating-Sections.html for more
+details about how section maps work."
   (let ((m (make-sparse-keymap)))
     (define-key m [remap magit-visit-thing] #'magit-todos-jump-to-item)
     (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
