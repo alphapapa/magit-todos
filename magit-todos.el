@@ -639,7 +639,7 @@ advance to the next line."
     (string (list :inherit 'hl-todo :foreground it))
     (t it)))
 
-(defun magit-todos-fontify-like-in-org-mode (s &optional odd-levels)
+(defun magit-todos--fontify-like-in-org-mode (s &optional odd-levels)
   "Fontify string S like in Org-mode.
 
 `org-fontify-like-in-org-mode' is a very, very slow function
@@ -882,7 +882,7 @@ This is a copy of `async-start-process' that does not override
 
 (defun magit-todos--format-org (item)
   "Return ITEM formatted as from an Org file."
-  (magit-todos-fontify-like-in-org-mode
+  (magit-todos--fontify-like-in-org-mode
    (concat (magit-todos-item-org-level item) " "
            (magit-todos-item-keyword item) " "
            (magit-todos-item-description item))))
