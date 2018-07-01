@@ -2,11 +2,11 @@
 
 * Ideas
 
-** TODO Avoid refreshing section too often
+** TODO Avoid refreshing section too often [1/2]
 
 On large repos, updating the section from scratch takes some time.  It would be good to avoid doing this too often in large repos.
 
-*** TODO Option for when to refresh it
+*** DONE Option for when to refresh it
 
 There should be an option for how often to refresh the to-dos section:
 
@@ -15,6 +15,19 @@ There should be an option for how often to refresh the to-dos section:
 +  a number of seconds (not automatically, but whenever the status buffer is refreshed and this many seconds have elapsed)
 
 =memoize= can be used to implement this, probably with a proxy function to handle always/manually.
+
+**** Implementation
+
++  [X] ~defvar magit-todos-updating~ :: Whether the items are being updated now.
++  [X] =defcustom magit-todos-update-automatically= :: Whether or how often to update the items automatically.
++  [X] ~defvar-local magit-todos-last-update-time~ :: When the items were last updated.  A time value as returned by ~(current-time)~.
++  [X] ~defun magit-todos-update~ :: Called to do a new scan, update the cache, and insert the section.  If the section already exists, it must be removed first.
++  [X] ~defun magit-todos--delete-section IDENT~ :: Called to delete the specified section from the status buffer.
++  [X] =defvar-local magit-todos-item-cache= :: Stores the items found by the scan function.
++  [X] =defun magit-todos--insert-items= :: Modify to call ~magit-todos--insert-items-callback~ directly with cached items when automatic updates are disabled.
++  [X] ~defun magit-todos--insert-items-callback~ :: Modify to:
+     -  [X]  Cache items when necessary
+     -  [X]  Show that section requires manual updating when no items are cached.
 
 *** TODO Set option automatically in large repos
 
