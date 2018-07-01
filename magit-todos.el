@@ -123,11 +123,14 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
 
-(defvar magit-todo-section-map
-  (let ((m (make-sparse-keymap)))
-    (define-key m [remap magit-visit-thing] #'magit-todos-jump-to-item)
-    (define-key m [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
-    m))
+(defvar magit-todos-item-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap magit-visit-thing] #'magit-todos-jump-to-item)
+    (define-key map [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
+    map)
+  "Keymap for `magit-todos' individual to-do item sections.
+See https://magit.vc/manual/magit/Creating-Sections.html for more
+details about how section maps work.")
 
 (defvar-local magit-todos-show-filenames nil
   "Whether to show filenames next to to-do items.
@@ -567,7 +570,7 @@ sections."
                                                        #'magit-todos--format-plain)
                                                      item))
                                     (truncate-string-to-width it (- width depth)))))
-                  (magit-insert-section (todo item)
+                  (magit-insert-section (todos-item item)
                     (insert string))
                   (insert "\n"))))
           (magit-todos--set-visibility :depth depth :num-items (length items) :section it))))))
