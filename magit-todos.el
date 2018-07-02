@@ -367,12 +367,13 @@ necessary."
                          (const :tag "Buffer position" magit-todos--sort-by-position)
                          (function :tag "Custom function"))))
 
-(defcustom magit-todos-depth 0
+(defcustom magit-todos-depth nil
   "Maximum depth of files in repo working tree to scan for to-dos.
 Deeper scans can be slow in large projects.  You may wish to set
 this in a directory-local variable for certain projects."
-  :type '(choice (const :tag "Repo root directory only" 0)
-                 integer))
+  :type '(choice (const :tag "Unlimited" nil)
+                 (const :tag "Repo root directory only" 0)
+                 (integer :tag "N levels below the repo root")))
 
 (defcustom magit-todos-nice t
   "Run scanner with \"nice\"."
@@ -814,13 +815,14 @@ This is a copy of `async-start-process' that does not override
   "Return to-dos in DIRECTORY, scanning with grep."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let* ((depth (number-to-string (1+ depth)))
-         (process-connection-type 'pipe)
-         (grep-find-template (->> grep-find-template
-                                  (s-replace " <D> "
-                                             (concat " <D> -maxdepth " depth " "))
+  (let* ((grep-find-template (->> grep-find-template
                                   (s-replace " grep " " grep -b -E ")
                                   (s-replace " -nH " " -H ")))
+         (_ (when depth
+              (setq grep-find-template
+                    (s-replace " <D> " (concat " <D> -maxdepth " (number-to-string (1+ depth)) " ")
+                               grep-find-template))))
+         (process-connection-type 'pipe)
          ;; Modified from `rgrep-default-command'
          (command (-flatten
                    (append (list "find" directory)
@@ -881,17 +883,18 @@ This is a copy of `async-start-process' that does not override
   "Return to-dos in DIRECTORY, scanning with ag."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let* ((depth (number-to-string (1+ depth)))
-         (process-connection-type 'pipe)
-         (command (list "--ackmate" "--depth" depth
-                        magit-todos-search-regexp directory)))
+  (let* ((process-connection-type 'pipe)
+         (command (list "--ackmate" magit-todos-search-regexp directory)))
+    (when depth
+      (push (list "--depth" (number-to-string (1+ depth))) command))
     (when magit-todos-ag-args
-      (setq command (append (-flatten (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                             magit-todos-ag-args))
+      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-ag-args)
                             command)))
     (push "ag" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
+    (setq command (-flatten command))
     (magit-todos--async-start-process "magit-todos--ag-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--ag-scan-async-callback magit-status-buffer))))
@@ -920,17 +923,18 @@ This is a copy of `async-start-process' that does not override
   "Return to-dos in DIRECTORY, scanning with rg."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let* ((depth (number-to-string (1+ depth)))
-         (process-connection-type 'pipe)
-         (command (list "--column" "--maxdepth" depth
-                        magit-todos-search-regexp directory)))
+  (let* ((process-connection-type 'pipe)
+         (command (list "--column" magit-todos-search-regexp directory)))
+    (when depth
+      (push (list "--maxdepth" (number-to-string (1+ depth))) command))
     (when magit-todos-rg-args
-      (setq command (append (-flatten (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                             magit-todos-rg-args))
+      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-rg-args)
                             command)))
     (push "rg" command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
+    (setq command (-flatten command))
     (magit-todos--async-start-process "magit-todos--rg-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer))))
@@ -959,19 +963,21 @@ This is a copy of `async-start-process' that does not override
   "Return to-dos in DIRECTORY, scanning with git-grep."
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
-  (let* ((depth (number-to-string (1+ depth)))
-         (process-connection-type 'pipe)
+  (let* ((process-connection-type 'pipe)
          (command (list "--no-pager" "grep" "--full-name"
-                        "--no-color" "-n" "--max-depth" depth
-                        "--perl-regexp" "-e" magit-todos-search-regexp
+                        "--no-color" "-n" "--perl-regexp" "-e"
+                        magit-todos-search-regexp
                         "--" directory)))
+    (when depth
+      (push (list "--max-depth" (number-to-string (1+ depth))) command))
     (when magit-todos-git-grep-args
-      (setq command (append (-flatten (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                             magit-todos-git-grep-args))
+      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-git-grep-args)
                             command)))
     (push magit-git-executable command)
     (when magit-todos-nice
       (setq command (append (list "nice" "-n5") command)))
+    (setq command (-flatten command))
     (magit-todos--async-start-process "magit-todos--git-grep-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--git-grep-scan-async-callback magit-status-buffer))))
