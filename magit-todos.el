@@ -161,7 +161,7 @@ A time value as returned by `current-time'.")
 (defcustom magit-todos-update t
   "When or how often to scan for to-dos.
 When set to manual updates, the list can be updated with the
-`magit-todos-update' command.  When caching is enabled, scan for
+command `magit-todos-update'.  When caching is enabled, scan for
 items whenever the Magit status buffer is refreshed and at least
 N seconds have passed since the last scan; otherwise, use cached
 items."
@@ -302,7 +302,7 @@ regular expression."
 (defcustom magit-todos-scan-fn nil
   "File scanning method.
 \"Automatic\" will attempt to use rg, ag, git-grep, and
-find-grep, in that order. "
+find-grep, in that order."
   :type '(choice (const :tag "Automatic" nil)
                  (const :tag "rg" magit-todos--rg-scan-async)
                  (const :tag "ag" magit-todos--ag-scan-async)
@@ -434,7 +434,7 @@ used."
 ;;;###autoload
 (defun magit-todos-update ()
   "Update the to-do list manually.
-Only necessary when `magit-todos-update' is nil."
+Only necessary when option `magit-todos-update' is nil."
   (interactive)
   (let ((inhibit-read-only t))
     (magit-todos--delete-section [* todos])
