@@ -78,6 +78,7 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 +  This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
 +  The =ag= support was made much simpler by the great [[https://github.com/joddie/pcre2el][pcre2el]] package by Jon Oddie.
++  Thanks to [[https://github.com/zhaojiangbin][Jiangbin Zhao]] for his extensive testing and feedback.
 
 ** License
 :PROPERTIES:
