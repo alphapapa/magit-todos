@@ -825,39 +825,40 @@ This is a copy of `async-start-process' that does not override
          (process-connection-type 'pipe)
          ;; Modified from `rgrep-default-command'
          (command (-flatten
-                   (append (list "find" directory)
-                           (-non-nil (list (when grep-find-ignored-directories
-                                             (list "-type" "d"
-                                                   "(" "-path"
-                                                   (-interpose (list "-o" "-path")
-                                                               (-non-nil (--map (cond ((stringp it)
-                                                                                       (concat "*/" it))
-                                                                                      ((consp it)
-                                                                                       (and (funcall (car it) it)
-                                                                                            (concat "*/" (cdr it)))))
-                                                                                grep-find-ignored-directories)))
-                                                   ")" "-prune"))
-                                           (when grep-find-ignored-files
-                                             (list "-o" "-type" "f"
-                                                   "(" "-name"
-                                                   (-interpose (list "-o" "-name")
-                                                               (--map (cond ((stringp it) it)
-                                                                            ((consp it) (and (funcall (car it) it)
-                                                                                             (cdr it))))
-                                                                      grep-find-ignored-files))
-                                                   ")" "-prune"))))
-                           (list "-o" "-type" "f")
-                           ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
-                           ;; Perl-compatible regular expression (PCRE).  This is highly
-                           ;; experimental and grep -P may warn of unimplemented features."  But it
-                           ;; does seem to work properly, at least on GNU grep.  Using "grep -E"
-                           ;; with this PCRE regexp doesn't work quite right, as it doesn't match
-                           ;; all the keywords, but pcre2el doesn't convert to "extended regular
-                           ;; expressions", so this will have to do.  Maybe we should test whether
-                           ;; the version of grep installed supports "-P".
-                           (list "-exec" "grep" "-bPH" magit-todos-search-regexp "{}" "+")))))
-    (when magit-todos-nice
-      (setq command (append (list "nice" "-n5") command)))
+                   (-non-nil
+                    (list (when magit-todos-nice
+                            (list "nice" "-n5"))
+                          "find" directory
+                          (list (when grep-find-ignored-directories
+                                  (list "-type" "d"
+                                        "(" "-path"
+                                        (-interpose (list "-o" "-path")
+                                                    (-non-nil (--map (cond ((stringp it)
+                                                                            (concat "*/" it))
+                                                                           ((consp it)
+                                                                            (and (funcall (car it) it)
+                                                                                 (concat "*/" (cdr it)))))
+                                                                     grep-find-ignored-directories)))
+                                        ")" "-prune"))
+                                (when grep-find-ignored-files
+                                  (list "-o" "-type" "f"
+                                        "(" "-name"
+                                        (-interpose (list "-o" "-name")
+                                                    (--map (cond ((stringp it) it)
+                                                                 ((consp it) (and (funcall (car it) it)
+                                                                                  (cdr it))))
+                                                           grep-find-ignored-files))
+                                        ")" "-prune")))
+                          (list "-o" "-type" "f")
+                          ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
+                          ;; Perl-compatible regular expression (PCRE).  This is highly
+                          ;; experimental and grep -P may warn of unimplemented features."  But it
+                          ;; does seem to work properly, at least on GNU grep.  Using "grep -E"
+                          ;; with this PCRE regexp doesn't work quite right, as it doesn't match
+                          ;; all the keywords, but pcre2el doesn't convert to "extended regular
+                          ;; expressions", so this will have to do.  Maybe we should test whether
+                          ;; the version of grep installed supports "-P".
+                          (list "-exec" "grep" "-bPH" magit-todos-search-regexp "{}" "+"))))))
     (magit-todos--async-start-process "magit-todos--grep-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--grep-scan-async-callback magit-status-buffer))))
@@ -884,17 +885,17 @@ This is a copy of `async-start-process' that does not override
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let* ((process-connection-type 'pipe)
-         (command (list "--ackmate" magit-todos-search-regexp directory)))
-    (when depth
-      (push (list "--depth" (number-to-string (1+ depth))) command))
-    (when magit-todos-ag-args
-      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                   magit-todos-ag-args)
-                            command)))
-    (push "ag" command)
-    (when magit-todos-nice
-      (setq command (append (list "nice" "-n5") command)))
-    (setq command (-flatten command))
+         (command (-flatten
+                   (-non-nil
+                    (list (when magit-todos-nice
+                            (list "nice" "-n5"))
+                          "ag"
+                          (when depth
+                            (list "--depth" (number-to-string (1+ depth))))
+                          (when magit-todos-ag-args
+                            (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-ag-args))
+                          "--ackmate" magit-todos-search-regexp directory)))))
     (magit-todos--async-start-process "magit-todos--ag-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--ag-scan-async-callback magit-status-buffer))))
@@ -924,17 +925,17 @@ This is a copy of `async-start-process' that does not override
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let* ((process-connection-type 'pipe)
-         (command (list "--column" magit-todos-search-regexp directory)))
-    (when depth
-      (push (list "--maxdepth" (number-to-string (1+ depth))) command))
-    (when magit-todos-rg-args
-      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                   magit-todos-rg-args)
-                            command)))
-    (push "rg" command)
-    (when magit-todos-nice
-      (setq command (append (list "nice" "-n5") command)))
-    (setq command (-flatten command))
+         (command (-flatten
+                   (-non-nil
+                    (list (when magit-todos-nice
+                            (list "nice" "-n5"))
+                          "rg"
+                          (when depth
+                            (list "--maxdepth" (number-to-string (1+ depth))))
+                          (when magit-todos-rg-args
+                            (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-rg-args))
+                          "--column" magit-todos-search-regexp directory)))))
     (magit-todos--async-start-process "magit-todos--rg-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--rg-scan-async-callback magit-status-buffer))))
@@ -964,20 +965,20 @@ This is a copy of `async-start-process' that does not override
   ;; NOTE: When dir-local variables are used, `with-temp-buffer' seems to reset them, so we must
   ;; capture them and pass them in.
   (let* ((process-connection-type 'pipe)
-         (command (list "--no-pager" "grep" "--full-name"
-                        "--no-color" "-n" "--perl-regexp" "-e"
-                        magit-todos-search-regexp
-                        "--" directory)))
-    (when depth
-      (push (list "--max-depth" (number-to-string (1+ depth))) command))
-    (when magit-todos-git-grep-args
-      (setq command (append (--map (s-split (rx (1+ space)) it 'omit-nulls)
-                                   magit-todos-git-grep-args)
-                            command)))
-    (push magit-git-executable command)
-    (when magit-todos-nice
-      (setq command (append (list "nice" "-n5") command)))
-    (setq command (-flatten command))
+         (command (-flatten
+                   (-non-nil
+                    (list (when magit-todos-nice
+                            (list "nice" "-n5"))
+                          magit-git-executable
+                          (when depth
+                            (list "--max-depth" (number-to-string (1+ depth))))
+                          (when magit-todos-git-grep-args
+                            (--map (s-split (rx (1+ space)) it 'omit-nulls)
+                                   magit-todos-git-grep-args))
+                          "--no-pager" "grep" "--full-name"
+                          "--no-color" "-n" "--perl-regexp" "-e"
+                          magit-todos-search-regexp
+                          "--" directory)))))
     (magit-todos--async-start-process "magit-todos--git-grep-scan-async"
       :command command
       :finish-func (apply-partially #'magit-todos--git-grep-scan-async-callback magit-status-buffer))))
