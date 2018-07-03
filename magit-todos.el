@@ -669,7 +669,7 @@ sections."
           (when (= 0 depth)
             (push it (oref magit-root-section children))))
       ;; Insert individual to-do items
-      (let ((width (window-text-width)))
+      (let ((width (- (window-text-width) depth)))
         (aprog1
             (magit-insert-section ((eval type))
               (magit-insert-heading heading)
@@ -685,7 +685,7 @@ sections."
                                                          #'magit-todos--format-org
                                                        #'magit-todos--format-plain)
                                                      item))
-                                    (truncate-string-to-width it (- width depth)))))
+                                    (truncate-string-to-width it width))))
                   (magit-insert-section (todos-item item)
                     (insert string))
                   (insert "\n"))))
