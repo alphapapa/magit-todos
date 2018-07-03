@@ -766,9 +766,9 @@ because it creates a new temporary buffer and runs `org-mode' for
 every string it fontifies.  This function reuses a single
 invisible buffer and only runs `org-mode' when the buffer is
 created."
-  (let ((buffer (get-buffer " *magit-todos-fontify*")))
+  (let ((buffer (get-buffer " *magit-todos--fontify-like-in-org-mode*")))
     (unless buffer
-      (setq buffer (get-buffer-create " *magit-todos-fontify*"))
+      (setq buffer (get-buffer-create " *magit-todos--fontify-like-in-org-mode*"))
       (with-current-buffer buffer
         (org-mode)))
     (with-current-buffer buffer
