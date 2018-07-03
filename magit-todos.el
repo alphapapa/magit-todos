@@ -469,16 +469,12 @@ If PEEK is non-nil, keep focus in status buffer window."
 (defun magit-todos-jump-to-todos ()
   "Jump to TODOs section, and update it if empty."
   (interactive)
-  (let ((already-in-section (magit-section-match [* todos])))
+  (let ((already-in-section-p (magit-section-match [* todos])))
     (magit-jump-to-todos)
-    (when (or
-           ;; Cached and forcing update
-           (and already-in-section
-                (integerp magit-todos-update))
-           ;; Manual updates
-           (not magit-todos-update)
-           ;; Section is empty
-           (= 0 (length (oref (magit-current-section) children))))
+    (when (and (or (integerp magit-todos-update)
+                   (not magit-todos-update))
+               (or already-in-section-p
+                   (= 0 (length (oref (magit-current-section) children)))))
       (magit-todos-update))))
 
 ;;;; Functions
