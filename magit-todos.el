@@ -728,7 +728,7 @@ See `magit-section-match'."
                          (goto-char (1- (point-max)))
                          (cl-return))))))
 
-(cl-defun magit-todos--next-item (regexp &optional filename)
+(cl-defun magit-todos--line-item (regexp &optional filename)
   "Return item on current line, parsing current buffer with REGEXP.
 FILENAME is added to the item as its filename.  Sets match data.
 This should be called in a process's output buffer from one of
@@ -738,13 +738,13 @@ advance to the next line."
     (when (re-search-forward regexp (line-end-position) t)
       (make-magit-todos-item :filename (or filename
                                            (match-string 8))
-                             :org-level (match-string 1)
                              :line (awhen (match-string 2)
                                      (string-to-number it))
                              :column (awhen (match-string 3)
                                        (string-to-number it))
                              :position (awhen (match-string 9)
                                          (string-to-number it))
+                             :org-level (match-string 1)
                              :keyword (match-string 4)
                              :description (match-string 5)))))
 
@@ -870,7 +870,7 @@ This is a copy of `async-start-process' that does not override
     (goto-char (point-min))
     (magit-todos--insert-items-callback
       magit-status-buffer
-      (cl-loop for item = (magit-todos--next-item magit-todos-grep-result-regexp)
+      (cl-loop for item = (magit-todos--line-item magit-todos-grep-result-regexp)
                while item
                unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                thereis (s-suffix? suffix (magit-todos-item-filename item)))
@@ -910,7 +910,7 @@ This is a copy of `async-start-process' that does not override
       (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
                append (let ((filename (f-relative (buffer-substring (1+ (point-at-bol)) (point-at-eol)) default-directory)))
                         (forward-line 1)
-                        (cl-loop for item = (magit-todos--next-item magit-todos-ag-result-regexp filename)
+                        (cl-loop for item = (magit-todos--line-item magit-todos-ag-result-regexp filename)
                                  while item
                                  unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
@@ -950,7 +950,7 @@ This is a copy of `async-start-process' that does not override
       (cl-loop while (looking-at (rx bol (1+ not-newline) eol))
                append (let ((filename (f-relative (buffer-substring (point-at-bol) (point-at-eol)) default-directory)))
                         (forward-line 1)
-                        (cl-loop for item = (magit-todos--next-item magit-todos-rg-result-regexp filename)
+                        (cl-loop for item = (magit-todos--line-item magit-todos-rg-result-regexp filename)
                                  while item
                                  unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                                  thereis (s-suffix? suffix (magit-todos-item-filename item)))
@@ -989,7 +989,7 @@ This is a copy of `async-start-process' that does not override
     (goto-char (point-min))
     (magit-todos--insert-items-callback
       magit-status-buffer
-      (cl-loop for item = (magit-todos--next-item magit-todos-git-grep-result-regexp)
+      (cl-loop for item = (magit-todos--line-item magit-todos-git-grep-result-regexp)
                while item
                unless (cl-loop for suffix in (-list magit-todos-ignore-file-suffixes)
                                thereis (s-suffix? suffix (magit-todos-item-filename item)))
