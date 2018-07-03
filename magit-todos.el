@@ -424,13 +424,13 @@ used."
             (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")
           (define-key magit-status-mode-map "jT" #'magit-todos-jump-to-todos))
         (magit-add-section-hook 'magit-status-sections-hook
-                                #'magit-todos--insert-items
+                                #'magit-todos--insert-todos
                                 'magit-insert-staged-changes
                                 'append))
     ;; Disable mode
     (when (equal (lookup-key magit-status-mode-map "jT") #'magit-jump-to-todos)
       (define-key magit-status-mode-map "jT" nil))
-    (remove-hook 'magit-status-sections-hook #'magit-todos--insert-items)))
+    (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)))
 
 ;;;###autoload
 (defun magit-todos-update ()
@@ -441,7 +441,7 @@ Only necessary when option `magit-todos-update' is nil."
     (magit-todos--delete-section [* todos])
     ;; HACK: See other note on `magit-todos-updating'.
     (setq magit-todos-updating t)
-    (magit-todos--insert-items)))
+    (magit-todos--insert-todos)))
 
 (defun magit-todos-jump-to-item (&optional peek)
   "Show current item.
@@ -519,7 +519,7 @@ Assumes current buffer is ITEM's buffer."
         (re-search-forward keyword (line-end-position) t)
         (goto-char (match-beginning 0))))))
 
-(defun magit-todos--insert-items ()
+(defun magit-todos--insert-todos ()
   "Insert to-do items into current buffer.
 This function should be called from inside a ‘magit-status’ buffer."
   (when magit-todos-active-scan
