@@ -823,6 +823,17 @@ become the scanner command.  Nil elements are removed and nested
 lists are flattened into a single list.  It is evaluated each
 time the scanner is run.
 
+Within the COMMAND list these variables are available:
+
+`depth': When non-nil, an integer as a string, which is the depth
+that should be passed to the scanner's max-depth option.
+
+`extra-args': The value of the customization variable
+\"magit-todos-NAME-extra-args\" (see below).
+
+`search-regexp': The regular expression to be passed to the
+scanner.
+
 RESULTS-REGEXP is a string or unquoted sexp which is used to
 match results in the scanner process's output buffer.  Typically
 this will be a sexp which calls `rx-to-string'.  It is evaluated
