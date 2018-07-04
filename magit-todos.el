@@ -607,11 +607,11 @@ This function should be called from inside a ‘magit-status’ buffer."
         (kill-buffer buffer)))
     (setq magit-todos-active-scan nil))
   (pcase magit-todos-update
-    ((or 't                             ; Automatic
+    ((or 't  ; Automatic
          ;; Manual and updating now
          (and 'nil (guard magit-todos-updating))
          ;; Caching and cache expired
-         (and (pred integerp) (guard (or magit-todos-updating ; Forced update
+         (and (pred integerp) (guard (or magit-todos-updating  ; Forced update
                                          (>= (float-time
                                               (time-subtract (current-time)
                                                              magit-todos-last-update-time))
