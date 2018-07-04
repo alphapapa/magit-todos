@@ -180,9 +180,9 @@ necessary."
   "Add VALUE to the end of SYMBOL's `custom-type' property."
   (declare (indent defun))
   (pcase-let* ((`(,type . ,choices) (get symbol 'custom-type))
-               (choices (append choices (list value))))
+               (choices (append (list value) choices)))
     (put symbol 'custom-type
-         (list type choices))))
+         (append (list type) choices))))
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
   (declare (indent defun))
@@ -330,6 +330,8 @@ e.g. `hl-todo-keyword-faces'."
 (custom-reevaluate-setting 'magit-todos-scanner)
 
 ;;;; Customization
+
+;; These customization options can go here.
 
 (defcustom magit-todos-update t
   "When or how often to scan for to-dos.
