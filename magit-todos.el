@@ -185,8 +185,38 @@ necessary."
          (append (list type) choices))))
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
+  "Define a `magit-todos' scanner named NAME.
+
+NAME is a string, which may contain spaces.  It is only used for
+descriptive purposes.
+
+TEST is an unquoted sexp which is used to determine whether the
+scanner is usable.  In most cases, it should use
+`executable-find' to look for the scanner command.
+
+COMMAND is an unquoted list of strings and sexps which will
+become the scanner command.  Nil elements are removed and nested
+lists are flattened into a single list.  It is evaluated each
+time the scanner is run.
+
+RESULTS-REGEXP is a string or unquoted sexp which is used to
+match results in the scanner process's output buffer.  Typically
+this will be a sexp which calls `rx-to-string'.  It is evaluated
+each time the scanner is run.
+
+The macro defines the following:
+
+\"magit-todos-NAME-extra-args\": A customization setting, a list
+of strings to be passed to the scanner as extra arguments.
+
+\"magit-todos--scan-with-NAME\": The function which runs the
+scanner command.
+
+It also adds the scanner to the customization variable
+`magit-todos-scanner', and to the variable
+`magit-todos-scanners' (which is used to set
+`magit-todos-scanner' by calling `magit-todos--choose-scanner')."
   (declare (indent defun))
-  "FIXME docstring"
   (let* ((name-without-spaces (s-replace " " "-" name))
          (scan-fn-name (concat "magit-todos--scan-with-" name-without-spaces))
          (scan-fn-symbol (intern scan-fn-name))
