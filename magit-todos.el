@@ -272,20 +272,15 @@ e.g. `hl-todo-keyword-faces'."
     (list it)
     (symbol (mapcar #'car (symbol-value it)))))
 
-(magit-todos-defscanner "git grep"
-  :test (not (string-match "Perl-compatible"
-                           (shell-command-to-string "git grep --max-depth 0 --perl-regexp --no-index --q magit-todos-test-string")))
-  :command ("git" "--no-pager"
-            "grep"
-            "--full-name" "--no-color" "-n"
+(magit-todos-defscanner "rg"
+  :test (executable-find "rg")
+  :command ("rg" "--no-heading" "--column"
             (when depth
-              (list "--max-depth" depth))
+              (list "--maxdepth" depth))
             (when magit-todos-ignore-case
               "--ignore-case")
-            "--perl-regexp"
-            "-e" search-regexp
             extra-args
-            "--" directory)
+            search-regexp directory)
   :results-regexp (rx-to-string
                    `(seq bol
                          ;; Filename
@@ -300,15 +295,20 @@ e.g. `hl-todo-keyword-faces'."
                          (optional (1+ blank)
                                    ;; Description
                                    (group-n 5 (1+ not-newline))))))
-(magit-todos-defscanner "rg"
-  :test (executable-find "rg")
-  :command ("rg" "--no-heading" "--column"
+(magit-todos-defscanner "git grep"
+  :test (not (string-match "Perl-compatible"
+                           (shell-command-to-string "git grep --max-depth 0 --perl-regexp --no-index --q magit-todos-test-string")))
+  :command ("git" "--no-pager"
+            "grep"
+            "--full-name" "--no-color" "-n"
             (when depth
-              (list "--maxdepth" depth))
+              (list "--max-depth" depth))
             (when magit-todos-ignore-case
               "--ignore-case")
+            "--perl-regexp"
+            "-e" search-regexp
             extra-args
-            search-regexp directory)
+            "--" directory)
   :results-regexp (rx-to-string
                    `(seq bol
                          ;; Filename
