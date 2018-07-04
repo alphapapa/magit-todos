@@ -637,8 +637,6 @@ A time value as returned by `current-time'.")
 
 ;;;; Customization
 
-;; These customization options can go here.
-
 (defgroup magit-todos nil
   "Show TODO items in source code comments in repos' files."
   :group 'magit)
@@ -809,10 +807,6 @@ used."
   :type '(repeat string))
 
 ;;;; Scanners
-
-;; Defining the scanners like this, with the macro, means that these forms can't all be
-;; tidily under the appropriate headings, because they must be defined before they are
-;; used.
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
   "Define a `magit-todos' scanner named NAME.
