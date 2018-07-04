@@ -235,21 +235,23 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                               (--map (s-split (rx (1+ space)) it 'omit-nulls)
                                      ,extra-args-var)))
                 (keywords magit-todos-keywords-list)
-                (search-regexp (rxt-elisp-to-pcre (rx-to-string `(or
-                                                                  ;; Org item
-                                                                  (seq bol (group (1+ "*"))
-                                                                       (1+ blank)
-                                                                       (group (or ,@keywords))
-                                                                       (1+ space)
-                                                                       (group (1+ not-newline)))
-                                                                  ;; Non-Org
-                                                                  (seq (group (or bol (1+ blank)))
-                                                                       (group (or ,@keywords))
-                                                                       (eval (if magit-todos-require-colon
-                                                                                 ":"
-                                                                               `(or eol blank (not (any alnum)))))
-                                                                       (optional (1+ blank)
-                                                                                 (group (1+ not-newline))))))))
+                (search-regexp (rxt-elisp-to-pcre
+                                (rx-to-string
+                                 `(or
+                                   ;; Org item
+                                   (seq bol (group (1+ "*"))
+                                        (1+ blank)
+                                        (group (or ,@keywords))
+                                        (1+ space)
+                                        (group (1+ not-newline)))
+                                   ;; Non-Org
+                                   (seq (group (or bol (1+ blank)))
+                                        (group (or ,@keywords))
+                                        (eval (if magit-todos-require-colon
+                                                  ":"
+                                                `(or eol blank (not (any alnum)))))
+                                        (optional (1+ blank)
+                                                  (group (1+ not-newline))))))))
                 (command (-flatten
                           (-non-nil
                            (list (when magit-todos-nice
@@ -271,7 +273,8 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 Chooses automatically in order defined in `magit-todos-scanners'."
   ;; NOTE: This needs to be defined before the `defcustom' that uses it.
   (cl-loop for scanner in magit-todos-scanners
-           ;; I guess it would be better to avoid `eval', but it seems like the natural way to do this.
+           ;; I guess it would be better to avoid `eval', but it seems like the natural
+           ;; way to do this.
            when (eval (a-get scanner 'test))
            return (a-get scanner 'function)))
 
