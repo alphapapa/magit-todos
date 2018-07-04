@@ -851,6 +851,9 @@ It also adds the scanner to the customization variable
 `magit-todos-scanner', and to the variable
 `magit-todos-scanners' (which is used to set
 `magit-todos-scanner' by calling `magit-todos--choose-scanner')."
+  ;; TODO: Try to obviate the -scanners variable, let --choose-scanner use the
+  ;; custom-type of -scanner directly.  Maybe, anyway--I don't want to ugly up the UI
+  ;; for users.
   (declare (indent defun))
   (let* ((name-without-spaces (s-replace " " "-" name))
          (scan-fn-name (concat "magit-todos--scan-with-" name-without-spaces))
