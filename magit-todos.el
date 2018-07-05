@@ -14,7 +14,7 @@
 ;; in the Magit status buffer.  Activating an item jumps to it in its file.  By
 ;; default, it uses keywords from `hl-todo', minus a few (like "NOTE").
 
-;;;; Installation
+;;;; Installation:
 
 ;;;;; MELPA
 
@@ -38,15 +38,15 @@
 
 ;;   (require 'magit-todos)
 
-;;;; Usage
+;;;; Usage:
 
 ;; Run `magit-todos-mode', then open a Magit status buffer.
 
-;;;; Tips
+;;;; Tips:
 
 ;; + You can customize settings in the `magit-todos' group.
 
-;;;; Credits
+;;;; Credits:
 
 ;; This package was inspired by <https://github.com/danielma/magit-org-todos.el>.
 
