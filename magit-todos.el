@@ -861,7 +861,8 @@ It also adds the scanner to the customization variable
          (extra-args-var (intern (format "magit-todos-%s-extra-args" name-without-spaces))))
     `(progn
        (defcustom ,extra-args-var nil
-         ,(format "Extra arguments passed to %s." name))
+         ,(format "Extra arguments passed to %s." name)
+         :type '(repeat string))
        (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth)
          ,(format "Scan for to-dos with %s, then call `magit-todos--scan-callback'.
 MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'."
