@@ -177,6 +177,7 @@ Chooses automatically in order defined in `magit-todos-scanners'."
 
 (defun magit-todos--scan-callback (magit-status-buffer results-regexp process)
   "Callback for `magit-todos--git-grep-scan-async'."
+  ;; SOMEDAY: Perhaps move process buffer parsing into separate function.
   (with-current-buffer (process-buffer process)
     (goto-char (point-min))
     (magit-todos--insert-items magit-status-buffer
