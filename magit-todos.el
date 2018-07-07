@@ -169,24 +169,11 @@ If PEEK is non-nil, keep focus in status buffer window."
 (defun magit-todos--choose-scanner ()
   "Return function to call to scan for items with.
 Chooses automatically in order defined in `magit-todos-scanners'."
-  ;; NOTE: This needs to be defined before the `defcustom' that uses it.
   (cl-loop for scanner in magit-todos-scanners
            ;; I guess it would be better to avoid `eval', but it seems like the natural
            ;; way to do this.
            when (eval (a-get scanner 'test))
            return (a-get scanner 'function)))
-
-(defun magit-todos--list-or-alist-var (it)
-  "Return the value of IT.
-If IT is a list, return it.  If IT is a symbol, assume it named
-an alist variable, and return a list of its cars.
-
-This function allows `magit-todos-keywords' to be specified as
-either a list of strings or a symbol which points to,
-e.g. `hl-todo-keyword-faces'."
-  (cl-etypecase it
-    (list it)
-    (symbol (mapcar #'car (symbol-value it)))))
 
 (defun magit-todos--scan-callback (magit-status-buffer results-regexp process)
   "Callback for `magit-todos--git-grep-scan-async'."
@@ -734,8 +721,7 @@ regular expression."
                                        (mapcar #'car (symbol-value value))
                                      (symbol-value value)))
                            (list value))))
-           (setq keywords (seq-difference keywords magit-todos-ignored-keywords)
-                 magit-todos-keywords-list keywords))))
+           (setq magit-todos-keywords-list (seq-difference keywords magit-todos-ignored-keywords)))))
 
 (defcustom magit-todos-max-items 10
   "Automatically collapse the section if there are more than this many items."
@@ -794,18 +780,6 @@ used."
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
 
-(defcustom magit-todos-ag-args nil
-  "Extra arguments to pass to ag."
-  :type '(repeat string))
-
-(defcustom magit-todos-rg-args nil
-  "Extra arguments to pass to rg."
-  :type '(repeat string))
-
-(defcustom magit-todos-git-grep-args nil
-  "Extra arguments to pass to git-grep."
-  :type '(repeat string))
-
 ;;;; Scanners
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
@@ -828,16 +802,29 @@ Within the COMMAND list these variables are available:
 `depth': When non-nil, an integer as a string, which is the depth
 that should be passed to the scanner's max-depth option.
 
+`directory': The directory in which the scan should be run.
+
 `extra-args': The value of the customization variable
 \"magit-todos-NAME-extra-args\" (see below).
+
+`keywords': List of item keywords defined in
+`magit-todos-keywords-list'.
 
 `search-regexp': The regular expression to be passed to the
 scanner.
 
-RESULTS-REGEXP is a string or unquoted sexp which is used to
-match results in the scanner process's output buffer.  Typically
-this will be a sexp which calls `rx-to-string'.  It is evaluated
-each time the scanner is run.
+RESULTS-REGEXP is an optional string or unquoted sexp which is
+used to match results in the scanner process's output buffer.
+Typically this will be a sexp which calls `rx-to-string'.  It is
+evaluated each time the scanner is run.  If nil, the appropriate
+default is used which matches results in the form:
+
+  FILENAME:LINE:MATCH
+
+Where MATCH may also match Org outline heading stars when
+appropriate.  Custom regexps may also match column numbers or
+byte offsets in the appropriate numbered groups; see
+`make-magit-todos-item'.
 
 The macro defines the following:
 
@@ -892,6 +879,21 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                                 `(or eol blank (not (any alnum)))))
                                         (optional (1+ blank)
                                                   (group (1+ not-newline))))))))
+                (results-regexp (or ,results-regexp
+                                    (rx-to-string
+                                     `(seq bol
+                                           ;; Filename
+                                           (group-n 8 (1+ (not (any ":")))) ":"
+                                           ;; Line
+                                           (group-n 2 (1+ digit)) ":"
+                                           ;; Org level
+                                           (optional (group-n 1 (1+ "*")))
+                                           (minimal-match (0+ not-newline))
+                                           ;; Keyword
+                                           (group-n 4 (or ,@keywords)) (optional ":")
+                                           (optional (1+ blank)
+                                                     ;; Description
+                                                     (group-n 5 (1+ not-newline)))))))
                 (command (-flatten
                           (-non-nil
                            (list (when magit-todos-nice
@@ -899,7 +901,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                  ,@command)))))
            (magit-todos--async-start-process ,scan-fn-name
              :command command
-             :finish-func (apply-partially #'magit-todos--scan-callback magit-status-buffer ,results-regexp))))
+             :finish-func (apply-partially #'magit-todos--scan-callback magit-status-buffer results-regexp))))
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
@@ -910,26 +912,12 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 
 (magit-todos-defscanner "rg"
   :test (executable-find "rg")
-  :command ("rg" "--no-heading" "--column"
+  :command ("rg" "--no-heading"
             (when depth
               (list "--maxdepth" depth))
             (when magit-todos-ignore-case
               "--ignore-case")
-            extra-args search-regexp directory)
-  :results-regexp (rx-to-string
-                   `(seq bol
-                         ;; Filename
-                         (group-n 8 (1+ (not (any ":")))) ":"
-                         ;; Line
-                         (group-n 2 (1+ digit)) ":"
-                         ;; Org level
-                         (optional (group-n 1 (1+ "*")))
-                         (minimal-match (0+ not-newline))
-                         ;; Keyword
-                         (group-n 4 (or ,@keywords)) (optional ":")
-                         (optional (1+ blank)
-                                   ;; Description
-                                   (group-n 5 (1+ not-newline))))))
+            extra-args search-regexp directory))
 
 (magit-todos-defscanner "git grep"
   :test (not (string-match "Perl-compatible"
@@ -942,21 +930,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
               "--ignore-case")
             "--perl-regexp"
             "-e" search-regexp
-            extra-args "--" directory)
-  :results-regexp (rx-to-string
-                   `(seq bol
-                         ;; Filename
-                         (group-n 8 (1+ (not (any ":")))) ":"
-                         ;; Line
-                         (group-n 2 (1+ digit)) ":"
-                         ;; Org level
-                         (optional (group-n 1 (1+ "*")))
-                         (minimal-match (0+ not-newline))
-                         ;; Keyword
-                         (group-n 4 (or ,@keywords)) (optional ":")
-                         (optional (1+ blank)
-                                   ;; Description
-                                   (group-n 5 (1+ not-newline))))))
+            extra-args "--" directory))
 
 ;;;;; Set scanner default value
 
