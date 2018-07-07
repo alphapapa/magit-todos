@@ -867,6 +867,7 @@ It also adds the scanner to the customization variable
 MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'."
                   name)
          (let* ((process-connection-type 'pipe)
+                (directory (f-relative directory default-directory))
                 (depth (when depth
                          (number-to-string depth)))
                 (extra-args (when ,extra-args-var
