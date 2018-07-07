@@ -908,7 +908,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
        (add-to-list 'magit-todos-scanners
                     (a-list 'name ,name
                             'function #',scan-fn-symbol
-                            'test ,test)
+                            'test ',test)
                     'append))))
 
 (magit-todos-defscanner "rg"
