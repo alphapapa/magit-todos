@@ -111,7 +111,6 @@
       (define-key magit-status-mode-map "jT" nil))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)))
 
-;;;###autoload
 (defun magit-todos-update ()
   "Update the to-do list manually.
 Only necessary when option `magit-todos-update' is nil."
