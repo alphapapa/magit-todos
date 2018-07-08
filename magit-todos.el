@@ -627,10 +627,6 @@ items in each group is automatically appended.
 
 TYPE is a symbol which is used by Magit internally to identify
 sections."
-  ;; FIXME: Visibility caching doesn't work :( It seems that the `magit-section-visibility-cache'
-  ;; variable gets filled with extra entries with incorrect visibility states, and then `alist-get'
-  ;; gets the wrong value.  Need to see if that happens when magit-todos-mode is off.
-
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
@@ -646,7 +642,7 @@ sections."
             (magit-insert-section ((eval type))
               (magit-insert-heading heading)
               (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
-                       do (magit-todos--insert-group :type (make-symbol group-type)
+                       do (magit-todos--insert-group :type (intern group-type)
                             :heading (concat
                                       (if (and magit-todos-fontify-keyword-headers
                                                (member group-type magit-todos-keywords-list))
