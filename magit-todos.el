@@ -792,10 +792,11 @@ TEST is an unquoted sexp which is used to determine whether the
 scanner is usable.  In most cases, it should use
 `executable-find' to look for the scanner command.
 
-COMMAND is an unquoted list of strings and sexps which will
-become the scanner command.  Nil elements are removed and nested
-lists are flattened into a single list.  It is evaluated each
-time the scanner is run.
+COMMAND is a sexp which should evaluate to the scanner command,
+i.e. a list of strings to be eventually passed to
+`start-process'.  Nil elements are removed and nested lists are
+flattened into a single list.  It is evaluated each time the
+scanner is run.
 
 Within the COMMAND list these variables are available:
 
@@ -898,7 +899,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                           (-non-nil
                            (list (when magit-todos-nice
                                    (list "nice" "-n5"))
-                                 ,@command)))))
+                                 ,command)))))
            (magit-todos--async-start-process ,scan-fn-name
              :command command
              :finish-func (apply-partially #'magit-todos--scan-callback magit-status-buffer results-regexp))))
@@ -912,25 +913,75 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 
 (magit-todos-defscanner "rg"
   :test (executable-find "rg")
-  :command ("rg" "--no-heading"
-            (when depth
-              (list "--maxdepth" depth))
-            (when magit-todos-ignore-case
-              "--ignore-case")
-            extra-args search-regexp directory))
+  :command (list "rg" "--no-heading"
+                 (when depth
+                   (list "--maxdepth" depth))
+                 (when magit-todos-ignore-case
+                   "--ignore-case")
+                 extra-args search-regexp directory))
 
 (magit-todos-defscanner "git grep"
   :test (not (string-match "Perl-compatible"
                            (shell-command-to-string "git grep --max-depth 0 --perl-regexp --no-index --q magit-todos-test-string")))
-  :command ("git" "--no-pager" "grep"
-            "--full-name" "--no-color" "-n"
-            (when depth
-              (list "--max-depth" depth))
-            (when magit-todos-ignore-case
-              "--ignore-case")
-            "--perl-regexp"
-            "-e" search-regexp
-            extra-args "--" directory))
+  :command (list "git" "--no-pager" "grep"
+                 "--full-name" "--no-color" "-n"
+                 (when depth
+                   (list "--max-depth" depth))
+                 (when magit-todos-ignore-case
+                   "--ignore-case")
+                 "--perl-regexp"
+                 "-e" search-regexp
+                 extra-args "--" directory))
+
+(magit-todos-defscanner "find|grep"
+  ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
+  ;; used much, if at all, so I'm not going to go to the trouble to fix this now.
+  :command (let* ((grep-find-template (progn
+                                        (unless grep-find-template
+                                          (grep-compute-defaults))
+                                        (->> grep-find-template
+                                             (s-replace " grep " " grep -b -E ")
+                                             (s-replace " -nH " " -H "))))
+                  (_ (when depth
+                       (setq grep-find-template
+                             (s-replace " <D> " (concat " <D> -maxdepth " (number-to-string (1+ depth)) " ")
+                                        grep-find-template)))))
+             ;; Modified from `rgrep-default-command'
+             (list "find" directory
+                   (list (when grep-find-ignored-directories
+                           (list "-type" "d"
+                                 "(" "-path"
+                                 (-interpose (list "-o" "-path")
+                                             (-non-nil (--map (cond ((stringp it)
+                                                                     (concat "*/" it))
+                                                                    ((consp it)
+                                                                     (and (funcall (car it) it)
+                                                                          (concat "*/" (cdr it)))))
+                                                              grep-find-ignored-directories)))
+                                 ")" "-prune"))
+                         (when grep-find-ignored-files
+                           (list "-o" "-type" "f"
+                                 "(" "-name"
+                                 (-interpose (list "-o" "-name")
+                                             (--map (cond ((stringp it) it)
+                                                          ((consp it) (and (funcall (car it) it)
+                                                                           (cdr it))))
+                                                    grep-find-ignored-files))
+                                 ")" "-prune")))
+                   (list "-o" "-type" "f")
+                   ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
+                   ;; Perl-compatible regular expression (PCRE).  This is highly
+                   ;; experimental and grep -P may warn of unimplemented features."  But it
+                   ;; does seem to work properly, at least on GNU grep.  Using "grep -E"
+                   ;; with this PCRE regexp doesn't work quite right, as it doesn't match
+                   ;; all the keywords, but pcre2el doesn't convert to "extended regular
+                   ;; expressions", so this will have to do.  Maybe we should test whether
+                   ;; the version of grep installed supports "-P".
+                   (list "-execdir" "grep" "-bPH"
+                         (when magit-todos-ignore-case
+                           "--ignore-case")
+                         extra-args
+                         search-regexp "{}" "+"))))
 
 ;;;;; Set scanner default value
 
