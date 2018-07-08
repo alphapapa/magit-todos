@@ -33,13 +33,13 @@ There should be an option for how often to refresh the to-dos section:
 
 The parsing/insertion should be timed, and if it takes too long, the previous option should be automatically set to timeout or manual.
 
-** TODO UI like magit-popup [0/5]
+** TODO UI like magit-popup [2/5]
 
-*** TODO Define scanners with a macro
+*** DONE Define scanners with a macro
 
 This will make the changes much simpler.  See =defscanner-macro= branch. 
 
-*** TODO Build regexps on scan invocation
+*** DONE Build regexps on scan invocation
 *** TODO Choose between ~magit-popup~ and [[https://github.com/magit/transient][transient]]
 
 *** TODO Implement UI
