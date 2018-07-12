@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 0.1-pre
+;; Version: 1.0.0
 ;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -14,13 +14,21 @@
 ;; in the Magit status buffer.  Activating an item jumps to it in its file.  By
 ;; default, it uses keywords from `hl-todo', minus a few (like "NOTE").
 
-;;;; Installation:
+;;;; Usage:
 
-;;;;; MELPA
+;; Run `magit-todos-mode', then open a Magit status buffer.
+
+;;;; Tips:
+
+;; + You can customize settings in the `magit-todos' group.
+
+;;; Installation:
+
+;;;; MELPA
 
 ;; If you installed from MELPA, you're done.
 
-;;;;; Manual
+;;;; Manual
 
 ;; Install these required packages:
 
@@ -37,18 +45,6 @@
 ;; Then put this file in your load-path, and put this in your init file:
 
 ;;   (require 'magit-todos)
-
-;;;; Usage:
-
-;; Run `magit-todos-mode', then open a Magit status buffer.
-
-;;;; Tips:
-
-;; + You can customize settings in the `magit-todos' group.
-
-;;;; Credits:
-
-;; This package was inspired by <https://github.com/danielma/magit-org-todos.el>.
 
 ;;; License:
 

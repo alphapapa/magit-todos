@@ -16,6 +16,7 @@ This package displays keyword entries from source code comments and Org files in
     -  [[#installation][Installation]]
     -  [[#usage][Usage]]
     -  [[#tips][Tips]]
+    -  [[#changelog][Changelog]]
     -  [[#credits][Credits]]
 
 ** Screenshots
@@ -73,6 +74,15 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 +  With point on a to-do item:
      -  Show the item by pressing @@html:<kbd>@@RET@@html:</kbd>@@
      -  Peek at the item by pressing @@html:<kbd>@@SPC@@html:</kbd>@@
+
+** Changelog
+:PROPERTIES:
+:TOC:      0
+:END:
+
+*** 1.0.0
+
+Initial release.
 
 ** Credits
 
