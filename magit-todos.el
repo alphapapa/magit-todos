@@ -578,9 +578,6 @@ This should be set automatically by customizing
 This should be set automatically by customizing
 `magit-todos-keywords'.")
 
-(defvar magit-todos-ignored-directories nil
-  "Automatically set by `magit-todos--repo-todos'.")
-
 (defvar-local magit-todos-active-scan nil
   "The current scan's process.
 Used to avoid running multiple simultaneous scans for a

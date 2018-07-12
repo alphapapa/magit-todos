@@ -85,6 +85,7 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 *Fixes*
 +  Test whether =git grep= supports =--perl-regexp= by checking its =--help= output, rather than doing a search and checking for an error.
 +  ~message~ instead of ~error~ for weird behavior.  (This message exists to help track down an inconsequential bug.)
++  Remove unused ~magit-todos-ignore-directories~ option.  (To be replaced in a future release.)
 
 *** 1.0.0
 
