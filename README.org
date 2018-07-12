@@ -94,6 +94,7 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 *Additions*
 +  Option ~magit-todos-exclude-globs~, a list of glob patterns to ignore when searching for to-do items.
++  Kill running scans when Magit status buffer is closed.
 
 *Changes*
 +  Remove dependency on ~a~.

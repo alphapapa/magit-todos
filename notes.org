@@ -50,10 +50,6 @@ This will make the changes much simpler.  See =defscanner-macro= branch.
 
 Now that we're using external scanners, I'm not sure this is important.  And if we implement a feature to avoid scanning too often in big repos, it probably won't be.
 
-** TODO Kill outstanding scans when status buffer is killed
-
-In case a long-running scan on a big repo is still running when the Magit status buffer is killed, it would be good to kill the scan process.
-
 ** MAYBE Option to limit depth of Org items
 
 e.g. I don't necessarily need to see each subtask under "Ignore files/directories in scanners".

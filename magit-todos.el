@@ -329,11 +329,13 @@ used."
         (magit-add-section-hook 'magit-status-sections-hook
                                 #'magit-todos--insert-todos
                                 'magit-insert-staged-changes
-                                'append))
+                                'append)
+        (add-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook 'append))
     ;; Disable mode
     (when (equal (lookup-key magit-status-mode-map "jT") #'magit-jump-to-todos)
       (define-key magit-status-mode-map "jT" nil))
-    (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)))
+    (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)
+    (remove-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook)))
 
 (defun magit-todos-update ()
   "Update the to-do list manually.
@@ -380,6 +382,20 @@ If PEEK is non-nil, keep focus in status buffer window."
       (magit-todos-update))))
 
 ;;;; Functions
+
+(defun magit-todos--add-to-status-buffer-kill-hook ()
+  "Add `magit-todos--kill-active-scan' to `kill-buffer-hook' locally."
+  (add-hook 'kill-buffer-hook #'magit-todos--kill-active-scan 'append 'local))
+
+(defun magit-todos--kill-active-scan ()
+  "Kill `magit-todos-active-scan'.
+To be called in status buffers' `kill-buffer-hook'."
+  (when (and magit-todos-active-scan
+             (process-live-p magit-todos-active-scan))
+    (kill-process magit-todos-active-scan)
+    (when-let* ((buffer (process-buffer magit-todos-active-scan))
+                (alive (buffer-live-p buffer)))
+      (kill-buffer buffer))))
 
 (defun magit-todos--add-to-custom-type (symbol value)
   "Add VALUE to the end of SYMBOL's `custom-type' property."
@@ -729,6 +745,7 @@ This is a copy of `async-start-process' that does not override
          (buf (generate-new-buffer (concat "*" name "*")))
          (proc (apply #'start-process name buf command args)))
     (with-current-buffer buf
+      (set-process-query-on-exit-flag proc nil)
       (set (make-local-variable 'async-callback) finish-func)
       (set-process-sentinel proc #'async-when-done)
       (unless (string= name "emacs")
