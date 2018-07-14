@@ -928,6 +928,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
   ;; used much, if at all, so I'm not going to go to the trouble to fix this now.
+  :test (string-match "--perl-regexp" (shell-command-to-string "grep --help"))
   :command (let* ((grep-find-template (progn
                                         (unless grep-find-template
                                           (grep-compute-defaults))
