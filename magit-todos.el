@@ -4,8 +4,8 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.0.4
-;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Version: 1.1-pre
+;; Package-Requires: ((emacs "25.2") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -32,7 +32,6 @@
 
 ;; Install these required packages:
 
-;; a
 ;; anaphora
 ;; async
 ;; dash
@@ -70,7 +69,6 @@
 (require 'grep)
 (require 'seq)
 
-(require 'a)
 (require 'anaphora)
 (require 'async)
 (require 'dash)
@@ -253,7 +251,8 @@ regular expression."
          (set-default option value)
          (let ((keywords (cl-typecase value
                            (null (user-error "Please add some keywords"))
-                           (symbol (if (a-associative-p (symbol-value value))
+                           (symbol (if (and (consp (symbol-value value))
+                                            (consp (car (symbol-value value))))
                                        (mapcar #'car (symbol-value value))
                                      (symbol-value value)))
                            (list value))))
@@ -394,8 +393,8 @@ Chooses automatically in order defined in `magit-todos-scanners'."
   (cl-loop for scanner in magit-todos-scanners
            ;; I guess it would be better to avoid `eval', but it seems like the natural
            ;; way to do this.
-           when (eval (a-get scanner 'test))
-           return (a-get scanner 'function)))
+           when (eval (alist-get 'test scanner))
+           return (alist-get 'function scanner)))
 
 (defun magit-todos--scan-callback (magit-status-buffer results-regexp process)
   "Callback for `magit-todos--git-grep-scan-async'."
@@ -676,9 +675,11 @@ advance to the next line."
   ;; non-uppercase.  Preserving the distinction might be useful.
   (when magit-todos-ignore-case
     (setq keyword (upcase keyword)))
-  (atypecase (a-get hl-todo-keyword-faces keyword)
-    (string (list :inherit 'hl-todo :foreground it))
-    (t it)))
+  (let ((face (alist-get keyword hl-todo-keyword-faces
+                         nil nil #'string=)))
+    (typecase face
+      (string (list :inherit 'hl-todo :foreground face))
+      (t face))))
 
 (defun magit-todos--fontify-like-in-org-mode (s &optional odd-levels)
   "Fontify string S like in Org-mode.
@@ -900,9 +901,9 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
-                    (a-list 'name ,name
-                            'function #',scan-fn-symbol
-                            'test ',test)
+                    (list (cons 'name ,name)
+                          (cons 'function #',scan-fn-symbol)
+                          (cons 'test ',test))
                     'append))))
 
 (magit-todos-defscanner "rg"

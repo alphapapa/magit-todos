@@ -58,7 +58,6 @@ If you installed from MELPA, you're done!
 
 Install these required packages:
 
--  =a=
 -  =anaphora=
 -  =async=
 -  =dash=
@@ -91,6 +90,11 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 :PROPERTIES:
 :TOC:      0
 :END:
+
+*** 1.1-pre
+
+*Changes*
++  Remove dependency on ~a~.
 
 *** 1.0.4
 
