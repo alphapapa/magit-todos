@@ -633,7 +633,12 @@ find-grep, in that order. "
            (unless value
              ;; Choosing automatically
              (setq value (or (magit-todos--choose-scanner)
-                             (message "magit-todos: Unable to choose scanner automatically"))))
+                             (progn
+                               (display-warning 'magit-todos
+                                                "`magit-todos' was unable to find a suitable scanner.  Please install \"rg\", or a PCRE-compatible version of \"git\" or \"grep\".  Disabling `magit-todos-mode'."
+                                                :error)
+                               (magit-todos-mode -1)
+                               nil))))
            (set-default option value))))
 
 (defcustom magit-todos-nice t
