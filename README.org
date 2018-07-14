@@ -80,6 +80,11 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 :TOC:      0
 :END:
 
+*** 1.0.1
+
+*Fixes*
++  Test whether =git grep= supports =--perl-regexp= by checking its =--help= output, rather than doing a search and checking for an error.
+
 *** 1.0.0
 
 Initial release.

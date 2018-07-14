@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -917,8 +917,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                  extra-args search-regexp directory))
 
 (magit-todos-defscanner "git grep"
-  :test (not (string-match "Perl-compatible"
-                           (shell-command-to-string "git grep --max-depth 0 --perl-regexp --no-index --q magit-todos-test-string")))
+  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --help"))
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
                  (when depth
