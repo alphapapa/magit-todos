@@ -80,6 +80,11 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 :TOC:      0
 :END:
 
+*** 1.0.2
+
+*Fixes*
++  ~regexp-quote~ item keywords when jumping to an item.  (Fixes #36.  Thanks to [[https://github.com/dfeich][Derek Feichtinger]].)
+
 *** 1.0.1
 
 *Fixes*
