@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 1.1-pre
-;; Package-Requires: ((emacs "25.2") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -32,7 +32,6 @@
 
 ;; Install these required packages:
 
-;; anaphora
 ;; async
 ;; dash
 ;; f
@@ -69,7 +68,6 @@
 (require 'grep)
 (require 'seq)
 
-(require 'anaphora)
 (require 'async)
 (require 'dash)
 (require 'f)
@@ -529,14 +527,13 @@ This function should be called from inside a ‘magit-status’ buffer."
                     (magit-insert-section (todos)
                       (magit-insert-heading (concat "TODOs (0)" reminder)))
                     (insert "\n")))
-              (aprog1
-                  (magit-todos--insert-group :type 'todos
-                    :heading (format "TODOs (%s)%s" num-items reminder)
-                    :group-fns group-fns
-                    :items items
-                    :depth 0)
+              (let ((section (magit-todos--insert-group :type 'todos
+                               :heading (format "TODOs (%s)%s" num-items reminder)
+                               :group-fns group-fns
+                               :items items
+                               :depth 0)))
                 (insert "\n")
-                (magit-todos--set-visibility :section it :num-items num-items)))))))))
+                (magit-todos--set-visibility :section section :num-items num-items)))))))))
 
 (cl-defun magit-todos--insert-group (&key depth group-fns heading type items)
   "Insert ITEMS into grouped Magit section and return the section.
@@ -567,50 +564,52 @@ sections."
     (if (and (consp group-fns)
              (> (length group-fns) 0))
         ;; Insert more sections
-        (aprog1                         ; `aprog1' is really handy here.
-            (magit-insert-section ((eval type))
-              (magit-insert-heading heading)
-              (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
-                       do (magit-todos--insert-group :type (intern group-type)
-                            :heading (concat
-                                      (if (and magit-todos-fontify-keyword-headers
-                                               (member group-type magit-todos-keywords-list))
-                                          (propertize group-type 'face (magit-todos--keyword-face group-type))
-                                        group-type)
-                                      ;; Item count
-                                      (if (= 1 (length group-fns))
-                                          ":" ; Let Magit add the count.
-                                        ;; Add count ourselves.
-                                        (concat " " (format "(%s)" (length items)))))
-                            :group-fns (cdr group-fns)
-                            :depth (+ 2 depth)
-                            :items items)))
-          (magit-todos--set-visibility :depth depth :num-items (length items) :section it)
+        (let ((section (magit-insert-section ((eval type))
+                         (magit-insert-heading heading)
+                         (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
+                                  do (magit-todos--insert-group :type (intern group-type)
+                                       :heading (concat
+                                                 (if (and magit-todos-fontify-keyword-headers
+                                                          (member group-type magit-todos-keywords-list))
+                                                     (propertize group-type 'face (magit-todos--keyword-face group-type))
+                                                   group-type)
+                                                 ;; Item count
+                                                 (if (= 1 (length group-fns))
+                                                     ":" ; Let Magit add the count.
+                                                   ;; Add count ourselves.
+                                                   (concat " " (format "(%s)" (length items)))))
+                                       :group-fns (cdr group-fns)
+                                       :depth (+ 2 depth)
+                                       :items items)))))
+          (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
           ;; Add top-level section to root section's children
           (when (= 0 depth)
-            (push it (oref magit-root-section children))))
+            (push section (oref magit-root-section children)))
+          ;; Don't forget to return the section!
+          section)
       ;; Insert individual to-do items
-      (let ((width (- (window-text-width) depth)))
-        (aprog1
-            (magit-insert-section ((eval type))
-              (magit-insert-heading heading)
-              (dolist (item items)
-                (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
-                       (string (--> (concat indent
-                                            (when (> depth 0)
-                                              ;; NOTE: We indent the item for both the group level and the item level.
-                                              "  ")
-                                            (when magit-todos-show-filenames
-                                              (concat filename " "))
-                                            (funcall (if (s-suffix? ".org" filename)
-                                                         #'magit-todos--format-org
-                                                       #'magit-todos--format-plain)
-                                                     item))
-                                    (truncate-string-to-width it width))))
-                  (magit-insert-section (todos-item item)
-                    (insert string))
-                  (insert "\n"))))
-          (magit-todos--set-visibility :depth depth :num-items (length items) :section it))))))
+      (let* ((width (- (window-text-width) depth))
+             (section (magit-insert-section ((eval type))
+                        (magit-insert-heading heading)
+                        (dolist (item items)
+                          (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
+                                 (string (--> (concat indent
+                                                      (when (> depth 0)
+                                                        ;; NOTE: We indent the item for both the group level and the item level.
+                                                        "  ")
+                                                      (when magit-todos-show-filenames
+                                                        (concat filename " "))
+                                                      (funcall (if (s-suffix? ".org" filename)
+                                                                   #'magit-todos--format-org
+                                                                 #'magit-todos--format-plain)
+                                                               item))
+                                              (truncate-string-to-width it width))))
+                            (magit-insert-section (todos-item item)
+                              (insert string))
+                            (insert "\n"))))))
+        (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
+        ;; Don't forget to return the section!
+        section))))
 
 (cl-defun magit-todos--set-visibility (&key section num-items depth)
   "Set the visibility of SECTION.
@@ -659,11 +658,11 @@ advance to the next line."
     (when (re-search-forward regexp (line-end-position) t)
       (make-magit-todos-item :filename (or filename
                                            (match-string 8))
-                             :line (awhen (match-string 2)
+                             :line (--when-let (match-string 2)
                                      (string-to-number it))
-                             :column (awhen (match-string 3)
+                             :column (--when-let (match-string 3)
                                        (string-to-number it))
-                             :position (awhen (match-string 9)
+                             :position (--when-let (match-string 9)
                                          (string-to-number it))
                              :org-level (match-string 1)
                              :keyword (match-string 4)
