@@ -256,7 +256,7 @@ This function should be called from inside a ‘magit-status’ buffer."
   (declare (indent defun))
   ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
   (when (not (buffer-live-p magit-status-buffer))
-    (error "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
+    (message "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
   (let* ((items (magit-todos--sort items))
          (num-items (length items))
          (group-fns (pcase magit-todos-auto-group-items
