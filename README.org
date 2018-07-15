@@ -74,6 +74,8 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 +  With point on a to-do item:
      -  Show the item by pressing @@html:<kbd>@@RET@@html:</kbd>@@
      -  Peek at the item by pressing @@html:<kbd>@@SPC@@html:</kbd>@@
++  This mode requires a Git installation with PCRE support; consult your package manager to determine whether your installation has it included.
+     -  On macOS, install Git with PCRE support via Homebrew: =brew reinstall --with-pcre2 git=
 
 ** Changelog
 :PROPERTIES:
