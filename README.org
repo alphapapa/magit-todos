@@ -40,9 +40,21 @@ This shows grouping items by the first path component, then keyword, then filena
 :TOC:      0
 :END:
 
+*** External scanner
+
+One of the following external scanners is required:
+
++  [[https://github.com/BurntSushi/ripgrep][ripgrep]]
++  =git grep= (built with PCRE support)
++  GNU =grep= (built with PCRE support)
+
+Most Linux systems should have the latter two by default, but some non-standard systems may not.  For example, on MacOS you may use [[https://brew.sh/][Homebrew]] to install =ripgrep=, or =git= with PCRE support, like: ~brew reinstall --with-pcre2 git~.
+
+*** Emacs package
+
 If you installed from MELPA, you're done!
 
-*** Manual
+**** Manually
 
 Install these required packages:
 
