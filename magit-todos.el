@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.0.2
+;; Version: 1.0.3-pre
 ;; Package-Requires: ((emacs "25.2") (a "0.1.0") (anaphora "1.0.0") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -84,6 +84,237 @@
 
 (cl-defstruct magit-todos-item
   filename org-level line column position keyword description)
+
+;;;; Variables
+
+(defvar magit-todos-keywords-list nil
+  "List of to-do keywords.
+Set automatically by `magit-todos-keywords' customization.")
+
+(defvar magit-todos-grep-result-regexp nil
+  "Regular expression for grep results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-ag-result-regexp nil
+  "Regular expression for ag results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-rg-result-regexp nil
+  "Regular expression for rg results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-git-grep-result-regexp nil
+  "Regular expression for git-grep results.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar magit-todos-search-regexp nil
+  "Regular expression to match keyword items with rg, ag, and git-grep.
+This should be set automatically by customizing
+`magit-todos-keywords'.")
+
+(defvar-local magit-todos-active-scan nil
+  "The current scan's process.
+Used to avoid running multiple simultaneous scans for a
+magit-status buffer.")
+
+(defvar magit-todos-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "jT" #'magit-todos-jump-to-todos)
+    map)
+  "Keymap for `magit-todos' top-level section.")
+
+(defvar magit-todos-item-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap magit-visit-thing] #'magit-todos-jump-to-item)
+    (define-key map [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
+    map)
+  "Keymap for `magit-todos' individual to-do item sections.
+See https://magit.vc/manual/magit/Creating-Sections.html for more
+details about how section maps work.")
+
+(defvar-local magit-todos-show-filenames nil
+  "Whether to show filenames next to to-do items.
+Set automatically depending on grouping.")
+
+(defvar-local magit-todos-updating nil
+  "Whether items are being updated now.")
+
+(defvar-local magit-todos-last-update-time nil
+  "When the items were last updated.
+A time value as returned by `current-time'.")
+
+(defvar-local magit-todos-item-cache nil
+  "Items found by most recent scan.")
+
+(defvar magit-todos-scanners nil
+  "Scanners defined by `magit-todos-defscanner'.")
+
+;;;; Customization
+
+(defgroup magit-todos nil
+  "Show TODO items in source code comments in repos' files."
+  :group 'magit)
+
+(defcustom magit-todos-scanner nil
+  "File scanning method.
+\"Automatic\" will attempt to use rg, ag, git-grep, and
+find-grep, in that order. "
+  :type '(choice (const :tag "Automatic" nil)
+                 (function :tag "Custom function"))
+  :set (lambda (option value)
+         (when magit-todos-scanners
+           ;; Only try to set when scanners are defined.
+           (unless value
+             ;; Choosing automatically
+             (setq value (or (magit-todos--choose-scanner)
+                             (progn
+                               (display-warning 'magit-todos
+                                                "`magit-todos' was unable to find a suitable scanner.  Please install \"rg\", or a PCRE-compatible version of \"git\" or \"grep\".  Disabling `magit-todos-mode'."
+                                                :error)
+                               (magit-todos-mode -1)
+                               nil))))
+           (set-default option value))))
+
+(defcustom magit-todos-nice t
+  "Run scanner with \"nice\"."
+  :type 'boolean)
+
+(defcustom magit-todos-ignore-case nil
+  "Upcase keywords found in files.
+If nil, a keyword like \"Todo:\" will not be shown.  `upcase' can
+be a relatively expensive function, so this can be disabled if
+necessary."
+  :type 'boolean)
+
+(defcustom magit-todos-update t
+  "When or how often to scan for to-dos.
+When set to manual updates, the list can be updated with the
+command `magit-todos-update'.  When caching is enabled, scan for
+items whenever the Magit status buffer is refreshed and at least
+N seconds have passed since the last scan; otherwise, use cached
+items."
+  :type '(choice (const :tag "Automatically, when the Magit status buffer is refreshed" t)
+                 (integer :tag "Automatically, but cache items for N seconds")
+                 (const :tag "Manually" nil)))
+
+(defcustom magit-todos-fontify-keyword-headers t
+  "Apply keyword faces to group keyword headers."
+  :type 'boolean)
+
+(defcustom magit-todos-require-colon t
+  "Only show items whose keywords are followed by a colon.
+i.e. when non-nil, only items like \"TODO: foo\" are shown, not
+\"TODO foo\"."
+  :type 'boolean
+  :set (lambda (option value)
+         (set-default option value)
+         (when (boundp 'magit-todos-keywords)
+           ;; Avoid setting `magit-todos-keywords' before it's defined.
+
+           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
+           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
+           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
+           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
+           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
+           ;; and now it's gone, but the manual still mentions it. ???
+           (custom-reevaluate-setting 'magit-todos-keywords))))
+
+(defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
+  "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
+  :type '(repeat string)
+  :set (lambda (option value)
+         (set-default option value)
+         (when (boundp 'magit-todos-keywords)
+           ;; Avoid setting `magit-todos-keywords' before it's defined.
+
+           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
+           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
+           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
+           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
+           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
+           ;; and now it's gone, but the manual still mentions it. ???
+           (custom-reevaluate-setting 'magit-todos-keywords))))
+
+(defcustom magit-todos-keywords 'hl-todo-keyword-faces
+  "To-do keywords to display in Magit status buffer.
+If set to a list variable, may be a plain list or an alist in
+which the keys are the keywords.
+
+When set, sets `magit-todos-search-regexp' to the appropriate
+regular expression."
+  :type '(choice (repeat :tag "Custom list" string)
+                 (const :tag "Keywords from `hl-todo'" hl-todo-keyword-faces)
+                 (variable :tag "List variable"))
+  :set (lambda (option value)
+         (set-default option value)
+         (let ((keywords (cl-typecase value
+                           (null (user-error "Please add some keywords"))
+                           (symbol (if (a-associative-p (symbol-value value))
+                                       (mapcar #'car (symbol-value value))
+                                     (symbol-value value)))
+                           (list value))))
+           (setq magit-todos-keywords-list (seq-difference keywords magit-todos-ignored-keywords)))))
+
+(defcustom magit-todos-max-items 10
+  "Automatically collapse the section if there are more than this many items."
+  :type 'integer)
+
+(defcustom magit-todos-auto-group-items 20
+  "Whether or when to automatically group items."
+  :type '(choice (integer :tag "When there are more than this many items")
+                 (const :tag "Always" always)
+                 (const :tag "Never" never)))
+
+(defcustom magit-todos-group-by '(magit-todos-item-keyword magit-todos-item-filename)
+  "How to group items.
+One or more attributes may be chosen, and they will be grouped in
+order."
+  :type '(repeat (choice (const :tag "By filename" magit-todos-item-filename)
+                         (const :tag "By keyword" magit-todos-item-keyword)
+                         (const :tag "By first path component" magit-todos-item-first-path-component))))
+
+(defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
+  "Ignore files with these suffixes."
+  :type '(repeat string))
+
+(defcustom magit-todos-fontify-org t
+  "Fontify items from Org files as Org headings."
+  :type 'boolean)
+
+(defcustom magit-todos-sort-order '(magit-todos--sort-by-keyword
+                                    magit-todos--sort-by-filename
+                                    magit-todos--sort-by-position)
+  "Order in which to sort items."
+  :type '(repeat (choice (const :tag "Keyword" magit-todos--sort-by-keyword)
+                         (const :tag "Filename" magit-todos--sort-by-filename)
+                         (const :tag "Buffer position" magit-todos--sort-by-position)
+                         (function :tag "Custom function"))))
+
+(defcustom magit-todos-depth nil
+  "Maximum depth of files in repo working tree to scan for to-dos.
+Deeper scans can be slow in large projects.  You may wish to set
+this in a directory-local variable for certain projects."
+  :type '(choice (const :tag "Unlimited" nil)
+                 (const :tag "Repo root directory only" 0)
+                 (integer :tag "N levels below the repo root")))
+
+(defcustom magit-todos-insert-at 'bottom
+  "Insert the to-dos section after this section in the Magit status buffer.
+Specific sections may be chosen, using the first symbol returned
+by evaluating \"(magit-section-ident (magit-current-section))\"
+in the status buffer with point on the desired section,
+e.g. `recent' for the \"Recent commits\" section.  Note that this
+may not work exactly as desired when the built-in scanner is
+used."
+  :type '(choice (const :tag "Top" top)
+                 (const :tag "Bottom" bottom)
+                 (const :tag "After untracked files" untracked)
+                 (const :tag "After unstaged files" unstaged)
+                 (symbol :tag "After selected section")))
 
 ;;;; Commands
 
@@ -546,237 +777,6 @@ This is a copy of `async-start-process' that does not override
   "Return non-nil if A's filename is `string<' B's."
   (string< (magit-todos-item-filename a)
            (magit-todos-item-filename b)))
-
-;;;; Variables
-
-(defvar magit-todos-keywords-list nil
-  "List of to-do keywords.
-Set automatically by `magit-todos-keywords' customization.")
-
-(defvar magit-todos-grep-result-regexp nil
-  "Regular expression for grep results.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar magit-todos-ag-result-regexp nil
-  "Regular expression for ag results.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar magit-todos-rg-result-regexp nil
-  "Regular expression for rg results.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar magit-todos-git-grep-result-regexp nil
-  "Regular expression for git-grep results.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar magit-todos-search-regexp nil
-  "Regular expression to match keyword items with rg, ag, and git-grep.
-This should be set automatically by customizing
-`magit-todos-keywords'.")
-
-(defvar-local magit-todos-active-scan nil
-  "The current scan's process.
-Used to avoid running multiple simultaneous scans for a
-magit-status buffer.")
-
-(defvar magit-todos-section-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "jT" #'magit-todos-jump-to-todos)
-    map)
-  "Keymap for `magit-todos' top-level section.")
-
-(defvar magit-todos-item-section-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [remap magit-visit-thing] #'magit-todos-jump-to-item)
-    (define-key map [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
-    map)
-  "Keymap for `magit-todos' individual to-do item sections.
-See https://magit.vc/manual/magit/Creating-Sections.html for more
-details about how section maps work.")
-
-(defvar-local magit-todos-show-filenames nil
-  "Whether to show filenames next to to-do items.
-Set automatically depending on grouping.")
-
-(defvar-local magit-todos-updating nil
-  "Whether items are being updated now.")
-
-(defvar-local magit-todos-last-update-time nil
-  "When the items were last updated.
-A time value as returned by `current-time'.")
-
-(defvar-local magit-todos-item-cache nil
-  "Items found by most recent scan.")
-
-(defvar magit-todos-scanners nil
-  "Scanners defined by `magit-todos-defscanner'.")
-
-;;;; Customization
-
-(defgroup magit-todos nil
-  "Show TODO items in source code comments in repos' files."
-  :group 'magit)
-
-(defcustom magit-todos-scanner nil
-  "File scanning method.
-\"Automatic\" will attempt to use rg, ag, git-grep, and
-find-grep, in that order. "
-  :type '(choice (const :tag "Automatic" nil)
-                 (function :tag "Custom function"))
-  :set (lambda (option value)
-         (when magit-todos-scanners
-           ;; Only try to set when scanners are defined.
-           (unless value
-             ;; Choosing automatically
-             (setq value (or (magit-todos--choose-scanner)
-                             (progn
-                               (display-warning 'magit-todos
-                                                "`magit-todos' was unable to find a suitable scanner.  Please install \"rg\", or a PCRE-compatible version of \"git\" or \"grep\".  Disabling `magit-todos-mode'."
-                                                :error)
-                               (magit-todos-mode -1)
-                               nil))))
-           (set-default option value))))
-
-(defcustom magit-todos-nice t
-  "Run scanner with \"nice\"."
-  :type 'boolean)
-
-(defcustom magit-todos-ignore-case nil
-  "Upcase keywords found in files.
-If nil, a keyword like \"Todo:\" will not be shown.  `upcase' can
-be a relatively expensive function, so this can be disabled if
-necessary."
-  :type 'boolean)
-
-(defcustom magit-todos-update t
-  "When or how often to scan for to-dos.
-When set to manual updates, the list can be updated with the
-command `magit-todos-update'.  When caching is enabled, scan for
-items whenever the Magit status buffer is refreshed and at least
-N seconds have passed since the last scan; otherwise, use cached
-items."
-  :type '(choice (const :tag "Automatically, when the Magit status buffer is refreshed" t)
-                 (integer :tag "Automatically, but cache items for N seconds")
-                 (const :tag "Manually" nil)))
-
-(defcustom magit-todos-fontify-keyword-headers t
-  "Apply keyword faces to group keyword headers."
-  :type 'boolean)
-
-(defcustom magit-todos-require-colon t
-  "Only show items whose keywords are followed by a colon.
-i.e. when non-nil, only items like \"TODO: foo\" are shown, not
-\"TODO foo\"."
-  :type 'boolean
-  :set (lambda (option value)
-         (set-default option value)
-         (when (boundp 'magit-todos-keywords)
-           ;; Avoid setting `magit-todos-keywords' before it's defined.
-
-           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
-           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
-           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
-           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
-           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
-           ;; and now it's gone, but the manual still mentions it. ???
-           (custom-reevaluate-setting 'magit-todos-keywords))))
-
-(defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
-  "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
-  :type '(repeat string)
-  :set (lambda (option value)
-         (set-default option value)
-         (when (boundp 'magit-todos-keywords)
-           ;; Avoid setting `magit-todos-keywords' before it's defined.
-
-           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
-           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
-           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
-           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
-           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
-           ;; and now it's gone, but the manual still mentions it. ???
-           (custom-reevaluate-setting 'magit-todos-keywords))))
-
-(defcustom magit-todos-keywords 'hl-todo-keyword-faces
-  "To-do keywords to display in Magit status buffer.
-If set to a list variable, may be a plain list or an alist in
-which the keys are the keywords.
-
-When set, sets `magit-todos-search-regexp' to the appropriate
-regular expression."
-  :type '(choice (repeat :tag "Custom list" string)
-                 (const :tag "Keywords from `hl-todo'" hl-todo-keyword-faces)
-                 (variable :tag "List variable"))
-  :set (lambda (option value)
-         (set-default option value)
-         (let ((keywords (cl-typecase value
-                           (null (user-error "Please add some keywords"))
-                           (symbol (if (a-associative-p (symbol-value value))
-                                       (mapcar #'car (symbol-value value))
-                                     (symbol-value value)))
-                           (list value))))
-           (setq magit-todos-keywords-list (seq-difference keywords magit-todos-ignored-keywords)))))
-
-(defcustom magit-todos-max-items 10
-  "Automatically collapse the section if there are more than this many items."
-  :type 'integer)
-
-(defcustom magit-todos-auto-group-items 20
-  "Whether or when to automatically group items."
-  :type '(choice (integer :tag "When there are more than this many items")
-                 (const :tag "Always" always)
-                 (const :tag "Never" never)))
-
-(defcustom magit-todos-group-by '(magit-todos-item-keyword magit-todos-item-filename)
-  "How to group items.
-One or more attributes may be chosen, and they will be grouped in
-order."
-  :type '(repeat (choice (const :tag "By filename" magit-todos-item-filename)
-                         (const :tag "By keyword" magit-todos-item-keyword)
-                         (const :tag "By first path component" magit-todos-item-first-path-component))))
-
-(defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
-  "Ignore files with these suffixes."
-  :type '(repeat string))
-
-(defcustom magit-todos-fontify-org t
-  "Fontify items from Org files as Org headings."
-  :type 'boolean)
-
-(defcustom magit-todos-sort-order '(magit-todos--sort-by-keyword
-                                    magit-todos--sort-by-filename
-                                    magit-todos--sort-by-position)
-  "Order in which to sort items."
-  :type '(repeat (choice (const :tag "Keyword" magit-todos--sort-by-keyword)
-                         (const :tag "Filename" magit-todos--sort-by-filename)
-                         (const :tag "Buffer position" magit-todos--sort-by-position)
-                         (function :tag "Custom function"))))
-
-(defcustom magit-todos-depth nil
-  "Maximum depth of files in repo working tree to scan for to-dos.
-Deeper scans can be slow in large projects.  You may wish to set
-this in a directory-local variable for certain projects."
-  :type '(choice (const :tag "Unlimited" nil)
-                 (const :tag "Repo root directory only" 0)
-                 (integer :tag "N levels below the repo root")))
-
-(defcustom magit-todos-insert-at 'bottom
-  "Insert the to-dos section after this section in the Magit status buffer.
-Specific sections may be chosen, using the first symbol returned
-by evaluating \"(magit-section-ident (magit-current-section))\"
-in the status buffer with point on the desired section,
-e.g. `recent' for the \"Recent commits\" section.  Note that this
-may not work exactly as desired when the built-in scanner is
-used."
-  :type '(choice (const :tag "Top" top)
-                 (const :tag "Bottom" bottom)
-                 (const :tag "After untracked files" untracked)
-                 (const :tag "After unstaged files" unstaged)
-                 (symbol :tag "After selected section")))
 
 ;;;; Scanners
 

@@ -80,6 +80,11 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 :TOC:      0
 :END:
 
+*** 1.0.3
+
+*Fixes*
++  Define variables earlier to avoid compiler warnings.
+
 *** 1.0.2
 
 *Fixes*
