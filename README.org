@@ -84,6 +84,7 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 *Fixes*
 +  Define variables earlier to avoid compiler warnings.
++  Remove unused var ~magit-todos-ignore-file-suffixes~.
 
 *** 1.0.2
 

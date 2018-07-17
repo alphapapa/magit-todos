@@ -60,6 +60,16 @@ e.g. I don't necessarily need to see each subtask under "Ignore files/directorie
 
 ** TODO Ignore files/directories in scanners
 
+*** TODO Add default globs
+
+e.g. these from this old var:
+
+#+BEGIN_SRC elisp
+  (defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
+    "Ignore files with these suffixes."
+    :type '(repeat string))
+#+END_SRC
+
 *** TODO rg
 
 Should probably use =--glob=:

@@ -277,10 +277,6 @@ order."
                          (const :tag "By keyword" magit-todos-item-keyword)
                          (const :tag "By first path component" magit-todos-item-first-path-component))))
 
-(defcustom magit-todos-ignore-file-suffixes '(".org_archive" "#")
-  "Ignore files with these suffixes."
-  :type '(repeat string))
-
 (defcustom magit-todos-fontify-org t
   "Fontify items from Org files as Org headings."
   :type 'boolean)
