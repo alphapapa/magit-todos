@@ -92,6 +92,11 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 :TOC:      0
 :END:
 
+*** 1.0.4
+
+*Fixes*
++  Fix =find|grep= scanner ([[https://github.com/alphapapa/magit-todos/issues/46][issue 46]]).  Thanks to [[https://github.com/Ambrevar][Pierre Neidhardt]].
+
 *** 1.0.3
 
 *Fixes*
