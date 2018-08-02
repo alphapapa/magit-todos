@@ -931,7 +931,10 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                    "--ignore-case")
                  "--perl-regexp"
                  "-e" search-regexp
-                 extra-args "--" directory))
+                 extra-args "--" directory
+                 (when magit-todos-exclude-globs
+                   (--map (concat ":!" it)
+                          magit-todos-exclude-globs))))
 
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
