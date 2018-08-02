@@ -916,6 +916,9 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                    (list "--maxdepth" depth))
                  (when magit-todos-ignore-case
                    "--ignore-case")
+                 (when magit-todos-exclude-globs
+                   (--map (list "--glob" (concat "!" it))
+                          magit-todos-exclude-globs))
                  extra-args search-regexp directory))
 
 (magit-todos-defscanner "git grep"
