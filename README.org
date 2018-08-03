@@ -92,6 +92,9 @@ Run =magit-todos-mode=, then open a Magit status buffer.
 
 *** 1.1-pre
 
+*Additions*
++  Option ~magit-todos-exclude-globs~, a list of glob patterns to ignore when searching for to-do items.
+
 *Changes*
 +  Remove dependency on ~a~.
 +  Remove dependency on =anaphora=.
