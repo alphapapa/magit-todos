@@ -309,6 +309,10 @@ used."
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
 
+(defcustom magit-todos-exclude-globs nil
+  "Glob patterns to exclude from searches."
+  :type '(repeat string))
+
 ;;;; Commands
 
 ;;;###autoload
@@ -912,6 +916,9 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                    (list "--maxdepth" depth))
                  (when magit-todos-ignore-case
                    "--ignore-case")
+                 (when magit-todos-exclude-globs
+                   (--map (list "--glob" (concat "!" it))
+                          magit-todos-exclude-globs))
                  extra-args search-regexp directory))
 
 (magit-todos-defscanner "git grep"
@@ -924,7 +931,10 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                    "--ignore-case")
                  "--perl-regexp"
                  "-e" search-regexp
-                 extra-args "--" directory))
+                 extra-args "--" directory
+                 (when magit-todos-exclude-globs
+                   (--map (concat ":!" it)
+                          magit-todos-exclude-globs))))
 
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
@@ -961,6 +971,11 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                                           ((consp it) (and (funcall (car it) it)
                                                                            (cdr it))))
                                                     grep-find-ignored-files))
+                                 ")" "-prune"))
+                         (when magit-todos-exclude-globs
+                           (list "-o" "("
+                                 (--map (list "-iname" it)
+                                        magit-todos-exclude-globs)
                                  ")" "-prune")))
                    (list "-o" "-type" "f")
                    ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
