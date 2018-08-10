@@ -694,8 +694,7 @@ advance to the next line."
   ;; non-uppercase.  Preserving the distinction might be useful.
   (when magit-todos-ignore-case
     (setq keyword (upcase keyword)))
-  (let ((face (alist-get keyword hl-todo-keyword-faces
-                         nil nil #'string=)))
+  (let ((face (assoc-default keyword hl-todo-keyword-faces #'string=)))
     (typecase face
       (string (list :inherit 'hl-todo :foreground face))
       (t face))))
