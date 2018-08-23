@@ -695,7 +695,7 @@ advance to the next line."
   (when magit-todos-ignore-case
     (setq keyword (upcase keyword)))
   (let ((face (assoc-default keyword hl-todo-keyword-faces #'string=)))
-    (typecase face
+    (cl-typecase face
       (string (list :inherit 'hl-todo :foreground face))
       (t face))))
 
