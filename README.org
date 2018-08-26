@@ -15,7 +15,6 @@ This package displays keyword entries from source code comments and Org files in
     -  [[#screenshots][Screenshots]]
     -  [[#installation][Installation]]
     -  [[#usage][Usage]]
-    -  [[#tips][Tips]]
     -  [[#changelog][Changelog]]
     -  [[#credits][Credits]]
 
@@ -73,17 +72,26 @@ Then put this file in your =load-path=, and put this in your init file:
 #+END_SRC
 
 ** Usage
+:PROPERTIES:
+:TOC:      0
+:END:
 
-Run =magit-todos-mode=, then open a Magit status buffer.
+Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
 
-** Tips
+*** Key bindings
+
+*In Magit status buffer:*
++  @@html:<kbd>@@j T@@html:</kbd>@@ :: Jump to the to-do list.  If the section is empty (e.g. when using manual updates), it will scan for items.
+
+*With point in to-do list:*
++  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
++  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point.
++  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
++  @@html:<kbd>@@j T@@html:</kbd>@@ :: When configured for manual updates, manually update the to-do list.
+
+*** Tips
 
 +  Customize settings in the =magit-todos= group.
-+  Jump to the to-do list in a Magit status buffer by pressing @@html:<kbd>@@j T@@html:</kbd>@@.  If the section is empty (e.g. when using manual updates), it will scan for items.
-+  When configured for manual updates, manually update the to-do list by pressing @@html:<kbd>@@j T@@html:</kbd>@@ with point in the to-do list, or with the =magit-todos-update= command.
-+  With point on a to-do item:
-     -  Show the item by pressing @@html:<kbd>@@RET@@html:</kbd>@@
-     -  Peek at the item by pressing @@html:<kbd>@@SPC@@html:</kbd>@@
 
 ** Changelog
 :PROPERTIES:
