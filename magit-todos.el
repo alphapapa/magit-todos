@@ -120,6 +120,7 @@ magit-status buffer.")
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
+    (define-key map "jl" #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
 
@@ -266,6 +267,10 @@ regular expression."
                  (const :tag "Always" always)
                  (const :tag "Never" never)))
 
+(defcustom magit-todos-buffer-item-factor 10
+  "Multiply `magit-todos-auto-group-items' and `magit-todos-max-items' by this factor in dedicated `magit-todos' buffers."
+  :type 'integer)
+
 (defcustom magit-todos-group-by '(magit-todos-item-keyword magit-todos-item-filename)
   "How to group items.
 One or more attributes may be chosen, and they will be grouped in
@@ -380,6 +385,49 @@ If PEEK is non-nil, keep focus in status buffer window."
                (or already-in-section-p
                    (= 0 (length (oref (magit-current-section) children)))))
       (magit-todos-update))))
+
+;;;; Dedicated buffer
+
+;;;###autoload
+(defun magit-todos-list (&optional directory)
+  "Show to-do list of the current Git repository in a buffer.
+With prefix, prompt for repository."
+  ;; Mostly copied from `magit-status'
+  (interactive
+   (let ((magit--refresh-cache (list (cons 0 0))))
+     (list (and (or current-prefix-arg (not (magit-toplevel)))
+                (magit-read-repository)))))
+  (let ((magit--refresh-cache (list (cons 0 0))))
+    (setq directory (if directory
+                        (file-name-as-directory (expand-file-name directory))
+                      default-directory))
+    (magit-todos-list-internal directory)))
+
+(put 'magit-todos-list 'interactive-only 'magit-todos-list-internal)
+
+;;;###autoload
+(defun magit-todos-list-internal (directory)
+  "Open buffer showing to-do list of repository at DIRECTORY."
+  (magit--tramp-asserts directory)
+  (let ((default-directory directory))
+    (magit-mode-setup #'magit-todos-list-mode)))
+
+(define-derived-mode magit-todos-list-mode magit-status-mode "Magit"
+  "Mode for looking at repository to-do list.
+
+\\<magit-todos-mode-map>\
+Type \\[magit-refresh] to refresh the list.
+Type \\[magit-section-toggle] to expand or hide the section at point.
+Type \\[magit-visit-thing] to visit the item at point.
+Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
+  :group 'magit-todos)
+
+(defun magit-todos-list-refresh-buffer ()
+  "Refresh the current `magit-todos-list-mode' buffer."
+  (setq-local magit-todos-max-items (* magit-todos-max-items magit-todos-buffer-item-factor))
+  (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor))
+  (magit-insert-status-headers)
+  (magit-todos--insert-todos))
 
 ;;;; Functions
 
