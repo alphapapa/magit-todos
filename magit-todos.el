@@ -397,11 +397,14 @@ With prefix, prompt for repository."
    (let ((magit--refresh-cache (list (cons 0 0))))
      (list (and (or current-prefix-arg (not (magit-toplevel)))
                 (magit-read-repository)))))
-  (let ((magit--refresh-cache (list (cons 0 0))))
-    (setq directory (if directory
-                        (file-name-as-directory (expand-file-name directory))
-                      default-directory))
-    (magit-todos-list-internal directory)))
+  (condition-case nil
+      (let ((magit--refresh-cache (list (cons 0 0))))
+        (setq directory (if directory
+                            (file-name-as-directory (expand-file-name directory))
+                          default-directory))
+        (magit-todos-list-internal directory))
+    ('magit-outside-git-repo (cl-letf (((symbol-function 'magit-toplevel) (lambda (&rest _) default-directory)))
+                               (call-interactively #'magit-todos-list)))))
 
 (put 'magit-todos-list 'interactive-only 'magit-todos-list-internal)
 

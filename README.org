@@ -98,15 +98,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
      3.  Choose the variable ~magit-todos-exclude-globs~.
      4.  Input the glob value, like ~("*.html")~ to exclude HTML files.  (Note that the input is read as a lisp value, and this variable must be a list of strings.)
      5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
-+  Magit only works inside a git repo, but to view to-dos outside of one, we can make Magit think it's in a repo by using [[https://github.com/nicferrier/emacs-noflet][noflet]], like this:
-
-#+BEGIN_SRC elisp
-  (defun magit-todos-list-anywhere ()
-    "Open to-dos list outside of git repo with `magit-todos-list'."
-    (interactive)
-    (noflet ((magit-toplevel (&rest _) default-directory))
-      (magit-todos-list)))
-#+END_SRC
++  The ~magit-todos-list~ command also works outside of git repos.
 
 ** Changelog
 :PROPERTIES:
@@ -115,7 +107,8 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *** 1.2-pre
 
-Nothing new yet.
+*Additions*
++  Allow ~magit-todos-list~ to work outside git repos.
 
 *** 1.1
 
