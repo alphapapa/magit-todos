@@ -92,11 +92,21 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *** Tips
 
 +  Customize settings in the =magit-todos= group.
++  Use dir-local variables to set per-repository settings.  For example, to exclude files and directories from being scanned for to-dos in a repo:
+     1.  From a buffer in the repo's directory (like a ~magit-status~ buffer), run the command ~add-dir-local-variable~.
+     2.  Choose the mode ~magit-status-mode~.
+     3.  Choose the variable ~magit-todos-exclude-globs~.
+     4.  Input the glob value, like ~("*.html")~ to exclude HTML files.  (Note that the input is read as a lisp value, and this variable must be a list of strings.)
+     5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
 
 ** Changelog
 :PROPERTIES:
 :TOC:      0
 :END:
+
+*** 1.2-pre
+
+Nothing new yet.
 
 *** 1.1
 
