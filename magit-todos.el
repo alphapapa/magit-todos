@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.1
+;; Version: 1.1.1
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -346,6 +346,8 @@ used."
   "Update the to-do list manually.
 Only necessary when option `magit-todos-update' is nil."
   (interactive)
+  (unless magit-todos-mode
+    (user-error "Please activate `magit-todos-mode'"))
   (let ((inhibit-read-only t))
     (magit-todos--delete-section [* todos])
     ;; HACK: See other note on `magit-todos-updating'.
