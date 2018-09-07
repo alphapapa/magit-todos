@@ -482,6 +482,8 @@ See `magit-section-match'.  Also delete it from root section's children."
                                  ;; Use `forward-line' instead of `magit-section-forward' because
                                  ;; sometimes it skips our section.
                                  do (forward-line 1)
+                                 when (eobp)
+                                 return nil
                                  finally return (magit-current-section))))
       ;; Delete the section from root section's children.  This makes the section-jumper command
       ;; work when a replacement section is inserted after deleting this section.
