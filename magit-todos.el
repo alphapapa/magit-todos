@@ -294,6 +294,8 @@ order."
 
 (defcustom magit-todos-depth nil
   "Maximum depth of files in repo working tree to scan for to-dos.
+A value of 0 means to search only the current directory, while a
+value of 1 means to search directories one level deeper, etc.
 Deeper scans can be slow in large projects.  You may wish to set
 this in a directory-local variable for certain projects."
   :type '(choice (const :tag "Unlimited" nil)
@@ -980,11 +982,20 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                           (cons 'test ',test))
                     'append))))
 
+;; NOTE: These scanners handle the max-depth option differently.  git-grep seems to handle it in the
+;; most useful way, with a setting of 0 meaning to look no deeper than the current directory, and a
+;; setting of 1 searching directories one level deeper.  In comparison, rg and find effectively
+;; subtract one from the value, as a setting of 0 returns no results, and a setting of 1 searches
+;; only the current directory (which means that when the max-depth is set to 0, the whole command is
+;; essentially a no-op, which is pointless).  Since we want `magit-todos-depth' to behave
+;; consistently with all scanners, we will treat it the way git-grep does, and for the other
+;; scanners we'll add one to its value.
+
 (magit-todos-defscanner "rg"
   :test (executable-find "rg")
   :command (list "rg" "--no-heading"
                  (when depth
-                   (list "--maxdepth" depth))
+                   (list "--maxdepth" (number-to-string (1+ depth))))
                  (when magit-todos-ignore-case
                    "--ignore-case")
                  (when magit-todos-exclude-globs
