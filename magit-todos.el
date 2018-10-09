@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.1.2
+;; Version: 1.1.3
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -430,8 +430,10 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
   "Refresh the current `magit-todos-list-mode' buffer."
   (setq-local magit-todos-max-items (* magit-todos-max-items magit-todos-buffer-item-factor))
   (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor))
-  (magit-insert-status-headers)
-  (magit-todos--insert-todos))
+  ;; Set parent section, necessary since <https://github.com/magit/magit/commit/40616d7ba57b7c491513e4130d82371460f9e94d>.  Fixes #55.
+  (let ((magit-insert-section--parent magit-root-section))
+    (magit-insert-status-headers)
+    (magit-todos--insert-todos)))
 
 ;;;; Functions
 
