@@ -79,7 +79,7 @@
 ;;;; Structs
 
 (cl-defstruct magit-todos-item
-  filename org-level line column position keyword description)
+  filename org-level line column position keyword suffix description)
 
 ;;;; Variables
 
@@ -202,23 +202,21 @@ items."
   "Apply keyword faces to group keyword headers."
   :type 'boolean)
 
-(defcustom magit-todos-require-colon t
-  "Only show items whose keywords are followed by a colon.
-i.e. when non-nil, only items like \"TODO: foo\" are shown, not
-\"TODO foo\"."
-  :type 'boolean
-  :set (lambda (option value)
-         (set-default option value)
-         (when (boundp 'magit-todos-keywords)
-           ;; Avoid setting `magit-todos-keywords' before it's defined.
+(defcustom magit-todos-keyword-suffix (rx (optional "(" (1+ (not (any ")"))) ")") ":")
+  "Regular expression matching suffixes after keywords.
+e.g. to match a keyword like \"TODO(user):\", use \"([^)]+):\".
 
-           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
-           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
-           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
-           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
-           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
-           ;; and now it's gone, but the manual still mentions it. ???
-           (custom-reevaluate-setting 'magit-todos-keywords))))
+If the suffix should be optional, the entire regexp should be
+made explicitly optional.  However, it is not necessary to
+account for optional whitespace after the suffix, as this is done
+automatically.
+
+Note: the suffix applies only to non-Org files."
+  :type `(choice (const :tag "Optional username in parens, then required colon (matching e.g. \"TODO:\" or \"TODO(user):\")"
+                        ,(rx (optional "(" (1+ (not (any ")"))) ")") ":"))
+                 (const :tag "Required colon (matching e.g. \"TODO:\"" ":")
+                 (string :tag "Custom regexp"))
+  :package-version '(magit-todos . "1.2"))
 
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
@@ -745,11 +743,12 @@ advance to the next line."
                                          (string-to-number it))
                              :org-level (match-string 1)
                              :keyword (match-string 4)
+                             :suffix (match-string 6)
                              :description (match-string 5)))))
 
 (defun magit-todos--keyword-face (keyword)
   "Return face for KEYWORD."
-  ;; TODO: Instead of upcasing here, upcase in the lookup, so it can still be displayed
+  ;; TODO(alphapapa): Instead of upcasing here, upcase in the lookup, so it can still be displayed
   ;; non-uppercase.  Preserving the distinction might be useful.
   (when magit-todos-ignore-case
     (setq keyword (upcase keyword)))
@@ -814,9 +813,10 @@ This is a copy of `async-start-process' that does not override
 
 (defun magit-todos--format-plain (item)
   "Return ITEM formatted as from a non-Org file."
-  (format "%s: %s"
+  (format "%s%s %s"
           (propertize (magit-todos-item-keyword item)
                       'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
+          (or (magit-todos-item-suffix item) "")
           (or (magit-todos-item-description item) "")))
 
 (defun magit-todos--format-org (item)
@@ -948,11 +948,9 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                         (1+ space)
                                         (group (1+ not-newline)))
                                    ;; Non-Org
-                                   (seq (group (or bol (1+ blank)))
+                                   (seq (or bol (1+ blank))
                                         (group (or ,@keywords))
-                                        (eval (if magit-todos-require-colon
-                                                  ":"
-                                                `(or eol blank (not (any alnum)))))
+                                        (regexp ,magit-todos-keyword-suffix)
                                         (optional (1+ blank)
                                                   (group (1+ not-newline))))))))
                 (results-regexp (or ,results-regexp
@@ -962,14 +960,19 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                            (group-n 8 (1+ (not (any ":")))) ":"
                                            ;; Line
                                            (group-n 2 (1+ digit)) ":"
-                                           ;; Org level
-                                           (optional (group-n 1 (1+ "*")))
-                                           (minimal-match (0+ not-newline))
-                                           ;; Keyword
-                                           (group-n 4 (or ,@keywords)) (optional ":")
-                                           (optional (1+ blank)
-                                                     ;; Description
-                                                     (group-n 5 (1+ not-newline)))))))
+                                           (or
+                                            ;; Org item
+                                            (seq (group-n 1 (1+ "*"))
+                                                 (1+ blank)
+                                                 (group-n 4 (or ,@keywords))
+                                                 (1+ blank)
+                                                 (group-n 5 (1+ not-newline)))
+                                            ;; Non-Org
+                                            (seq (optional (1+ not-newline))
+                                                 (group-n 4 (or ,@keywords))
+                                                 (optional (group-n 6 (regexp ,magit-todos-keyword-suffix)))
+                                                 (optional (1+ blank))
+                                                 (optional (group-n 5 (1+ not-newline)))))))))
                 (command (-flatten
                           (-non-nil
                            (list (when magit-todos-nice
