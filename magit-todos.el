@@ -915,7 +915,9 @@ It also adds the scanner to the customization variable
   ;; TODO: Try to obviate the -scanners variable, let --choose-scanner use the
   ;; custom-type of -scanner directly.  Maybe, anyway--I don't want to ugly up the UI
   ;; for users.
-  (declare (indent defun))
+  (declare (indent defun) (debug (stringp [&rest &or [":test" def-form]
+                                                 [":command" def-form]
+                                                 [":results-regexp" [&or stringp def-form]]])))
   (let* ((name-without-spaces (s-replace " " "-" name))
          (scan-fn-name (concat "magit-todos--scan-with-" name-without-spaces))
          (scan-fn-symbol (intern scan-fn-name))
