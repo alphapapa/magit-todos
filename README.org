@@ -22,9 +22,9 @@ This package displays keyword entries from source code comments and Org files in
 
 [[screenshots/matrix.png]]
 
-Org headings can optionally be fontified as such, and sorting can be customized (this shows sorting by filename, then keyword, then buffer position):
+Items from Org files can be displayed, and can be fontified like in Org buffers:
 
-[[screenshots/org.png]]
+[[screenshots/fancy-org.png]]
 
 Items can also be automatically grouped in a customizable way, which can be helpful in large repos:
 
