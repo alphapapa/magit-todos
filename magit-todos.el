@@ -275,6 +275,7 @@ One or more attributes may be chosen, and they will be grouped in
 order."
   :type '(repeat (choice (const :tag "By filename" magit-todos-item-filename)
                          (const :tag "By keyword" magit-todos-item-keyword)
+                         (const :tag "By suffix" magit-todos-item-suffix)
                          (const :tag "By first path component" magit-todos-item-first-path-component))))
 
 (defcustom magit-todos-fontify-org t
@@ -286,6 +287,7 @@ order."
                                     magit-todos--sort-by-position)
   "Order in which to sort items."
   :type '(repeat (choice (const :tag "Keyword" magit-todos--sort-by-keyword)
+                         (const :tag "Suffix" magit-todos--sort-by-suffix)
                          (const :tag "Filename" magit-todos--sort-by-filename)
                          (const :tag "Buffer position" magit-todos--sort-by-position)
                          (function :tag "Custom function"))))
@@ -437,6 +439,16 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
     (magit-todos--insert-todos)))
 
 ;;;; Functions
+
+(defun magit-todos--coalesce-groups (groups)
+  "Return GROUPS, coalescing any groups with `equal' keys.
+GROUPS should be an alist.  Assumes that each group contains
+unique items.  Intended for post-processing the result of
+`-group-by'."
+  (cl-loop with keys = (-uniq (-map #'car groups))
+           for key in keys
+           for matching-groups = (--select (equal key (car it)) groups)
+           collect (cons key (apply #'append (-map #'cdr matching-groups)))))
 
 (defun magit-todos--add-to-status-buffer-kill-hook ()
   "Add `magit-todos--kill-active-scan' to `kill-buffer-hook' locally."
@@ -637,23 +649,39 @@ sections."
     (if (and (consp group-fns)
              (> (length group-fns) 0))
         ;; Insert more sections
-        (let ((section (magit-insert-section ((eval type))
-                         (magit-insert-heading heading)
-                         (cl-loop for (group-type . items) in (-group-by (car group-fns) items)
-                                  do (magit-todos--insert-group :type (intern group-type)
-                                       :heading (concat
-                                                 (if (and magit-todos-fontify-keyword-headers
-                                                          (member group-type magit-todos-keywords-list))
-                                                     (propertize group-type 'face (magit-todos--keyword-face group-type))
-                                                   group-type)
-                                                 ;; Item count
-                                                 (if (= 1 (length group-fns))
-                                                     ":" ; Let Magit add the count.
-                                                   ;; Add count ourselves.
-                                                   (concat " " (format "(%s)" (length items)))))
-                                       :group-fns (cdr group-fns)
-                                       :depth (+ 2 depth)
-                                       :items items)))))
+        (let* ((groups (--> (-group-by (car group-fns) items)
+                            (cl-loop for group in-ref it
+                                     ;; HACK: Set ":" keys to nil so they'll be grouped together.
+                                     do (pcase (car group)
+                                          (":" (setf (car group) nil)))
+                                     finally return it)
+                            (magit-todos--coalesce-groups it)))
+               (section (magit-insert-section ((eval type))
+                          (magit-insert-heading heading)
+                          (cl-loop for (group-type . items) in groups
+                                   for group-type = (pcase group-type
+                                                      ;; Use "[Other]" instead of empty group name.
+                                                      ;; HACK: ":" is hard-coded, even though the
+                                                      ;; suffix regexp could differ. If users change
+                                                      ;; the suffix so this doesn't apply, it
+                                                      ;; shouldn't cause any problems, it just won't
+                                                      ;; look as pretty.
+                                                      ((or "" ":" 'nil) "[Other]")
+                                                      (_ (s-chop-suffix ":" group-type)))
+                                   do (magit-todos--insert-group :type (intern group-type)
+                                        :heading (concat
+                                                  (if (and magit-todos-fontify-keyword-headers
+                                                           (member group-type magit-todos-keywords-list))
+                                                      (propertize group-type 'face (magit-todos--keyword-face group-type))
+                                                    group-type)
+                                                  ;; Item count
+                                                  (if (= 1 (length group-fns))
+                                                      ":" ; Let Magit add the count.
+                                                    ;; Add count ourselves.
+                                                    (concat " " (format "(%s)" (length items)))))
+                                        :group-fns (cdr group-fns)
+                                        :depth (+ 2 depth)
+                                        :items items)))))
           (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
           ;; Add top-level section to root section's children
           (when (= 0 depth)
@@ -848,6 +876,11 @@ This is a copy of `async-start-process' that does not override
   "Return non-nil if A's filename is `string<' B's."
   (string< (magit-todos-item-filename a)
            (magit-todos-item-filename b)))
+
+(defun magit-todos--sort-by-suffix (a b)
+  "Return non-nil if A's suffix is `string<' B's."
+  (string< (magit-todos-item-suffix a)
+           (magit-todos-item-suffix b)))
 
 ;;;; Scanners
 

@@ -114,6 +114,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Added*
 +  Allow ~magit-todos-list~ to work outside git repos.
 +  Option ~magit-todos-keyword-suffix~ replaces ~magit-todos-require-colon~, allowing for common and custom suffixes after item keywords (e.g. to match items like =TODO(user):=).  (Fixes [[https://github.com/alphapapa/magit-todos/issues/56][#56]].  Thanks to [[https://github.com/thiderman][Lowe Thiderman]] for suggesting.)
++  Optionally group and sort by item suffixes (e.g. handy when suffixes contain usernames).
 
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
