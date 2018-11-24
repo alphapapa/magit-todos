@@ -867,14 +867,14 @@ scanner is usable.  In most cases, it should use
 
 COMMAND is a sexp which should evaluate to the scanner command,
 i.e. a list of strings to be eventually passed to
-`start-process'.  Nil elements are removed and nested lists are
-flattened into a single list.  It is evaluated each time the
-scanner is run.
+`start-process'.  Nil elements are removed, numbers are converted
+to strings, and nested lists are flattened into a single list.
+It is evaluated each time the scanner is run.
 
 Within the COMMAND list these variables are available:
 
-`depth': When non-nil, an integer as a string, which is the depth
-that should be passed to the scanner's max-depth option.
+`depth': When non-nil, an integer, which is the depth that should
+be passed to the scanner's max-depth option (i.e. `magit-todos-depth').
 
 `directory': The directory in which the scan should be run.
 
@@ -932,8 +932,6 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                   name)
          (let* ((process-connection-type 'pipe)
                 (directory (f-relative directory default-directory))
-                (depth (when depth
-                         (number-to-string depth)))
                 (extra-args (when ,extra-args-var
                               (--map (s-split (rx (1+ space)) it 'omit-nulls)
                                      ,extra-args-var)))
@@ -978,6 +976,10 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                            (list (when magit-todos-nice
                                    (list "nice" "-n5"))
                                  ,command)))))
+           ;; Convert any numbers in command to strings (e.g. depth).
+           (cl-loop for elt in-ref command
+                    when (numberp elt)
+                    do (setf elt (number-to-string elt)))
            (magit-todos--async-start-process ,scan-fn-name
              :command command
              :finish-func (apply-partially #'magit-todos--scan-callback magit-status-buffer results-regexp))))
@@ -1002,7 +1004,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
   :test (executable-find "rg")
   :command (list "rg" "--no-heading"
                  (when depth
-                   (list "--maxdepth" (number-to-string (1+ depth))))
+                   (list "--maxdepth" (1+ depth)))
                  (when magit-todos-ignore-case
                    "--ignore-case")
                  (when magit-todos-exclude-globs
@@ -1037,7 +1039,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                              (s-replace " -nH " " -H "))))
                   (_ (when depth
                        (setq grep-find-template
-                             (s-replace " <D> " (concat " <D> -maxdepth " (number-to-string (1+ depth)) " ")
+                             (s-replace " <D> " (concat " <D> -maxdepth " (1+ depth) " ")
                                         grep-find-template)))))
              ;; Modified from `rgrep-default-command'
              (list "find" directory

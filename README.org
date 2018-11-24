@@ -114,6 +114,11 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
 
+*** 1.1.4
+
+*Fixes*
++  ~magit-todos-depth~ number-to-string conversion.
+
 *** 1.1.3
 
 *Fixes*
