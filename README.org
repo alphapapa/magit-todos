@@ -34,6 +34,10 @@ This shows grouping items by the first path component, then keyword, then filena
 
 [[screenshots/emacs-grouped-by-path.png]]
 
+Items in =KEYWORD(username):= format are also read:
+
+[[screenshots/thiderman.png]]
+
 ** Installation
 :PROPERTIES:
 :TOC:      0
