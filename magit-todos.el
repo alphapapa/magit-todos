@@ -484,11 +484,13 @@ Chooses automatically in order defined in `magit-todos-scanners'."
   ;; SOMEDAY: Perhaps move process buffer parsing into separate function.
   (with-current-buffer (process-buffer process)
     (goto-char (point-min))
-    (magit-todos--insert-items magit-status-buffer
-      (cl-loop for item = (magit-todos--line-item results-regexp)
-               while item
-               collect item
-               do (forward-line 1)))))
+    (prog1
+        (magit-todos--insert-items magit-status-buffer
+          (cl-loop for item = (magit-todos--line-item results-regexp)
+                   while item
+                   collect item
+                   do (forward-line 1)))
+      (kill-buffer (current-buffer)))))
 
 (defun magit-todos--delete-section (condition)
   "Delete the section specified by CONDITION from the Magit status buffer.
