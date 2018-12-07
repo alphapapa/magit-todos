@@ -38,6 +38,9 @@ Items in =KEYWORD(username):= format are also read:
 
 [[screenshots/thiderman.png]]
 
+Here it is in action:
+[[screenshots/TODO-Done.gif]]
+
 ** Installation
 :PROPERTIES:
 :TOC:      0
