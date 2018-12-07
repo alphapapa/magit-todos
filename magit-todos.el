@@ -827,7 +827,7 @@ This is a copy of `async-start-process' that does not override
   ;; <https://github.com/jwiegley/emacs-async/issues/102>.
   (let* ((args (cdr command))
          (command (car command))
-         (buf (generate-new-buffer (concat "*" name "*")))
+         (buf (generate-new-buffer (concat " *" name "*")))
          (proc (apply #'start-process name buf command args)))
     (with-current-buffer buf
       (set-process-query-on-exit-flag proc nil)
