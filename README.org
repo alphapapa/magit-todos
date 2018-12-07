@@ -119,9 +119,6 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
 
-*Fixed*
-+  Let ~async-when-done~ kill scanner process buffers.
-
 *** 1.1.4
 
 *Fixes*

@@ -459,8 +459,10 @@ unique items.  Intended for post-processing the result of
 To be called in status buffers' `kill-buffer-hook'."
   (when (and magit-todos-active-scan
              (process-live-p magit-todos-active-scan))
-    ;; NOTE: Not sure if `delete-process' would be better here.
-    (kill-process magit-todos-active-scan)))
+    (kill-process magit-todos-active-scan)
+    (when-let* ((buffer (process-buffer magit-todos-active-scan))
+                (alive (buffer-live-p buffer)))
+      (kill-buffer buffer))))
 
 (defun magit-todos--add-to-custom-type (symbol value)
   "Add VALUE to the end of SYMBOL's `custom-type' property."
@@ -534,9 +536,11 @@ This function should be called from inside a ‘magit-status’ buffer."
   (declare (indent defun))
   (when magit-todos-active-scan
     ;; Avoid running multiple scans for a single magit-status buffer.
-    (when (process-live-p magit-todos-active-scan)
-      ;; NOTE: Not sure if `kill-process' would be better here.
-      (delete-process magit-todos-active-scan))
+    (let ((buffer (process-buffer magit-todos-active-scan)))
+      (when (process-live-p magit-todos-active-scan)
+        (delete-process magit-todos-active-scan))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))
     (setq magit-todos-active-scan nil))
   (pcase magit-todos-update
     ((or 't  ; Automatic
