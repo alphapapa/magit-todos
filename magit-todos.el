@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.1.4
+;; Version: 1.1.5
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -797,7 +797,7 @@ This is a copy of `async-start-process' that does not override
   ;; <https://github.com/jwiegley/emacs-async/issues/102>.
   (let* ((args (cdr command))
          (command (car command))
-         (buf (generate-new-buffer (concat "*" name "*")))
+         (buf (generate-new-buffer (concat " *" name "*")))
          (proc (apply #'start-process name buf command args)))
     (with-current-buffer buf
       (set-process-query-on-exit-flag proc nil)
