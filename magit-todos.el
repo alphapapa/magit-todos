@@ -616,7 +616,7 @@ This function should be called from inside a ‘magit-status’ buffer."
                     (magit-insert-section (todos)
                       (magit-insert-heading (concat "TODOs (0)" reminder)))
                     (insert "\n")))
-              (let ((section (magit-todos--insert-group :type 'todos
+              (let ((section (magit-todos--insert-groups :type 'todos
                                :heading (format "TODOs (%s)%s" num-items reminder)
                                :group-fns group-fns
                                :items items
@@ -624,12 +624,11 @@ This function should be called from inside a ‘magit-status’ buffer."
                 (insert "\n")
                 (magit-todos--set-visibility :section section :num-items num-items)))))))))
 
-(cl-defun magit-todos--insert-group (&key depth group-fns heading type items)
+(cl-defun magit-todos--insert-groups (&key depth group-fns heading type items)
   "Insert ITEMS into grouped Magit section and return the section.
 
 DEPTH sets indentation and should be 0 for a top-level group.  It
-is automatically incremented by 2 when this function calls
-itself.
+is automatically incremented when this function calls itself.
 
 GROUP-FNS may be a list of functions to which ITEMS are applied
 with `-group-by' to group them.  Items are grouped
@@ -645,14 +644,14 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat depth " "))
+  (let* ((indent (s-repeat (* 2 depth) " "))
          (heading (concat indent heading))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
                                          magit-insert-section--parent)))
     (if (and (consp group-fns)
              (> (length group-fns) 0))
-        ;; Insert more sections
+        ;; Insert more groups
         (let* ((groups (--> (-group-by (car group-fns) items)
                             (cl-loop for group in-ref it
                                      ;; HACK: Set ":" keys to nil so they'll be grouped together.
@@ -663,7 +662,7 @@ sections."
                (section (magit-insert-section ((eval type))
                           (magit-insert-heading heading)
                           (cl-loop for (group-type . items) in groups
-                                   for group-type = (pcase group-type
+                                   for group-name = (pcase group-type
                                                       ;; Use "[Other]" instead of empty group name.
                                                       ;; HACK: ":" is hard-coded, even though the
                                                       ;; suffix regexp could differ. If users change
@@ -672,20 +671,19 @@ sections."
                                                       ;; look as pretty.
                                                       ((or "" ":" 'nil) "[Other]")
                                                       (_ (s-chop-suffix ":" group-type)))
-                                   do (magit-todos--insert-group :type (intern group-type)
+                                   do (magit-todos--insert-groups
+                                        :depth (1+ depth) :group-fns (cdr group-fns)
+                                        :type (intern group-name) :items items
                                         :heading (concat
                                                   (if (and magit-todos-fontify-keyword-headers
-                                                           (member group-type magit-todos-keywords-list))
-                                                      (propertize group-type 'face (magit-todos--keyword-face group-type))
-                                                    group-type)
+                                                           (member group-name magit-todos-keywords-list))
+                                                      (propertize group-name 'face (magit-todos--keyword-face group-name))
+                                                    group-name)
                                                   ;; Item count
                                                   (if (= 1 (length group-fns))
                                                       ":" ; Let Magit add the count.
                                                     ;; Add count ourselves.
-                                                    (concat " " (format "(%s)" (length items)))))
-                                        :group-fns (cdr group-fns)
-                                        :depth (+ 2 depth)
-                                        :items items)))))
+                                                    (concat " " (format "(%s)" (length items))))))))))
           (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
           ;; Add top-level section to root section's children
           (when (= 0 depth)
@@ -693,28 +691,44 @@ sections."
           ;; Don't forget to return the section!
           section)
       ;; Insert individual to-do items
-      (let* ((width (- (window-text-width) depth))
-             (section (magit-insert-section ((eval type))
-                        (magit-insert-heading heading)
-                        (dolist (item items)
-                          (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
-                                 (string (--> (concat indent
-                                                      (when (> depth 0)
-                                                        ;; NOTE: We indent the item for both the group level and the item level.
-                                                        "  ")
-                                                      (when magit-todos-show-filenames
-                                                        (concat filename " "))
-                                                      (funcall (if (s-suffix? ".org" filename)
-                                                                   #'magit-todos--format-org
-                                                                 #'magit-todos--format-plain)
-                                                               item))
-                                              (truncate-string-to-width it width))))
-                            (magit-insert-section (todos-item item)
-                              (insert string))
-                            (insert "\n"))))))
-        (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
-        ;; Don't forget to return the section!
-        section))))
+      (magit-todos--insert-group :depth (1+ depth) :type type :items items :heading heading))))
+
+(cl-defun magit-todos--insert-group (&key depth heading type items)
+  "Insert ITEMS into Magit section and return the section.
+
+DEPTH sets indentation and should be 0 for a top-level group.
+
+HEADING is a string which is the group's heading.  The count of
+items in each group is automatically appended.
+
+TYPE is a symbol which is used by Magit internally to identify
+sections."
+  ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
+  ;; visibility within calls to it probably won't work as intended.
+  (declare (indent defun))
+  (let* ((indent (s-repeat (* 2 depth) " "))
+         (magit-insert-section--parent (if (= 0 depth)
+                                           magit-root-section
+                                         magit-insert-section--parent))
+         (width (- (window-text-width) depth))
+         (section (magit-insert-section ((eval type))
+                    (magit-insert-heading heading)
+                    (dolist (item items)
+                      (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
+                             (string (--> (concat indent
+                                                  (when magit-todos-show-filenames
+                                                    (concat filename " "))
+                                                  (funcall (if (s-suffix? ".org" filename)
+                                                               #'magit-todos--format-org
+                                                             #'magit-todos--format-plain)
+                                                           item))
+                                          (truncate-string-to-width it width))))
+                        (magit-insert-section (todos-item item)
+                          (insert string))
+                        (insert "\n"))))))
+    (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
+    ;; Don't forget to return the section!
+    section))
 
 (cl-defun magit-todos--set-visibility (&key section num-items depth)
   "Set the visibility of SECTION.
