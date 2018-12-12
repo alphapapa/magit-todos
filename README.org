@@ -119,6 +119,11 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
 
+*** 1.1.6
+
+*Fixed*
++  Insert root section in ~magit-todos-list~ command.  (Really fixes [[https://github.com/alphapapa/magit-todos/issues/55][#55]].  Thanks to [[https://github.com/tarsius][Jonas Bernoulli]].)
+
 *** 1.1.5
 
 *Fixed*

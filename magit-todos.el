@@ -433,8 +433,7 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
   "Refresh the current `magit-todos-list-mode' buffer."
   (setq-local magit-todos-max-items (* magit-todos-max-items magit-todos-buffer-item-factor))
   (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor))
-  ;; Set parent section, necessary since <https://github.com/magit/magit/commit/40616d7ba57b7c491513e4130d82371460f9e94d>.  Fixes #55.
-  (let ((magit-insert-section--parent magit-root-section))
+  (magit-insert-section (type magit-root-section)
     (magit-insert-status-headers)
     (magit-todos--insert-todos)))
 
