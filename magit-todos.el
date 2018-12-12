@@ -121,6 +121,7 @@ magit-status buffer.")
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
     (define-key map "jl" #'magit-todos-list)
+    (define-key map (kbd "RET") #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
 

@@ -88,10 +88,10 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: Jump to the to-do list.  If the section is empty (e.g. when using manual updates), it will scan for items.
 
 *With point in to-do list:*
-+  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
-+  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point.
-+  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: When configured for manual updates, manually update the to-do list.
++  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
++  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
++  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
 
 *** Tips
 
@@ -115,6 +115,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  Allow ~magit-todos-list~ to work outside git repos.
 +  Option ~magit-todos-keyword-suffix~ replaces ~magit-todos-require-colon~, allowing for common and custom suffixes after item keywords (e.g. to match items like =TODO(user):=).  (Fixes [[https://github.com/alphapapa/magit-todos/issues/56][#56]].  Thanks to [[https://github.com/thiderman][Lowe Thiderman]] for suggesting.)
 +  Optionally group and sort by item suffixes (e.g. handy when suffixes contain usernames).
++  Bind @@html:<kbd>@@RET@@html:</kbd>@@ on top-level =TODOs= section heading to ~magit-todos-list~ command.
 
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
