@@ -850,10 +850,49 @@ This is a copy of `async-start-process' that does not override
     (with-current-buffer buf
       (set-process-query-on-exit-flag proc nil)
       (set (make-local-variable 'async-callback) finish-func)
-      (set-process-sentinel proc #'async-when-done)
+      (set-process-sentinel proc #'magit-todos--async-when-done)
       (unless (string= name "emacs")
         (set (make-local-variable 'async-callback-for-process) t))
       proc)))
+
+(defun magit-todos--async-when-done (proc &optional _change)
+  "Process sentinel used to retrieve the value from the child process.
+
+This is a copy of `async-when-done' that does not raise an error
+if the process's buffer has already been deleted."
+  ;; I wish it weren't necessary to copy this function here, but at the moment it seems like the
+  ;; only reasonable way to work around this problem of `async-when-done' trying to select deleted
+  ;; buffers.  I already tried not deleting the buffers, but then I got bug reports about that and
+  ;; had to revert it.  I don't know if I'm encountering a bug in my code, in `async', or in Emacs
+  ;; itself, because it seems that `async-when-done' is being called on the wrong buffers: When I'm
+  ;; connected with `matrix-client', and when I have a Magit status buffer opened with
+  ;; `magit-todos-mode' active, then when one of the `url' process buffers from Matrix gets its
+  ;; sentinel called, I get an error from `async-when-done' trying to select the already-deleted
+  ;; `rg' scanner buffer!  It's as if Emacs is mixing up the process buffers.  I really don't know
+  ;; what's going on.  But maybe I can work around it by copying this function and checking whether
+  ;; the process's buffer is alive.
+  (when (and (eq 'exit (process-status proc))
+             (buffer-live-p (process-buffer proc)))
+    (with-current-buffer (process-buffer proc)
+      (let ((async-current-process proc))
+        (if (= 0 (process-exit-status proc))
+            (if async-callback-for-process
+                (if async-callback
+                    (prog1
+                        (funcall async-callback proc)
+                      (unless async-debug
+                        (kill-buffer (current-buffer))))
+                  (set (make-local-variable 'async-callback-value) proc)
+                  (set (make-local-variable 'async-callback-value-set) t))
+              (goto-char (point-max))
+              (backward-sexp)
+              (async-handle-result async-callback (read (current-buffer))
+                                   (current-buffer)))
+          (set (make-local-variable 'async-callback-value)
+               (list 'error
+                     (format "Async process '%s' failed with exit code %d"
+                             (process-name proc) (process-exit-status proc))))
+          (set (make-local-variable 'async-callback-value-set) t))))))
 
 ;;;;; Formatters
 

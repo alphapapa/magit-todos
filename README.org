@@ -120,6 +120,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Fixed*
 +  Don't fontify section item counts.  (Thanks to [[https://github.com/m-cat][Marcin Swieczkowski]].)
 
+*Worked Around*
++  Issue in =async= regarding deleted buffers/processes.  This is not an ideal solution, but it solves the problem for now.
+
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
 
