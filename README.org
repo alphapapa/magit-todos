@@ -102,6 +102,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *Fixed*
 +  Disable undo in hidden Org fontification buffer.
++  Expand top-level to-do list in ~magit-todos-list~ buffer.
 
 *** 1.1.6
 
