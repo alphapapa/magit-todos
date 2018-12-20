@@ -434,9 +434,9 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
   "Refresh the current `magit-todos-list-mode' buffer."
   (setq-local magit-todos-max-items (* magit-todos-max-items magit-todos-buffer-item-factor))
   (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor))
-  (magit-insert-section (type magit-root-section)
-    (magit-insert-status-headers)
-    (magit-todos--insert-todos)))
+  (magit-section-show (magit-insert-section (type magit-root-section)
+                        (magit-insert-status-headers)
+                        (magit-todos--insert-todos))))
 
 ;;;; Functions
 
@@ -811,6 +811,7 @@ created."
     (unless buffer
       (setq buffer (get-buffer-create " *magit-todos--fontify-like-in-org-mode*"))
       (with-current-buffer buffer
+        (buffer-disable-undo)
         (org-mode)))
     (with-current-buffer buffer
       (erase-buffer)
