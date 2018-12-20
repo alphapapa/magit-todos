@@ -100,7 +100,8 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *** 1.1.7-pre
 
-Nothing yet.
+*Fixed*
++  Disable undo in hidden Org fontification buffer.
 
 *** 1.1.6
 

@@ -766,6 +766,7 @@ created."
     (unless buffer
       (setq buffer (get-buffer-create " *magit-todos--fontify-like-in-org-mode*"))
       (with-current-buffer buffer
+        (buffer-disable-undo)
         (org-mode)))
     (with-current-buffer buffer
       (erase-buffer)
