@@ -614,10 +614,13 @@ This function should be called from inside a ‘magit-status’ buffer."
                   ;; Manual updates: Insert section to remind user
                   (let ((magit-insert-section--parent magit-root-section))
                     (magit-insert-section (todos)
-                      (magit-insert-heading (concat "TODOs (0)" reminder)))
+                      (magit-insert-heading (concat (propertize "TODOs" 'face 'magit-section-heading)
+                                                    " (0)" reminder)))
                     (insert "\n")))
               (let ((section (magit-todos--insert-groups :type 'todos
-                               :heading (format "TODOs (%s)%s" num-items reminder)
+                               :heading (format "%s (%s)%s"
+                                                (propertize "TODOs" 'face 'magit-section-heading)
+                                                num-items reminder)
                                :group-fns group-fns
                                :items items
                                :depth 0)))
