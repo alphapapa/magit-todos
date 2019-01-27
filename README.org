@@ -111,7 +111,8 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *** 1.3-pre
 
-Nothing new yet.
+*Internal*
++  Put newline in section headings.  (#68.  Thanks to [[https://github.com/vermiculus][Sean Allred]].)
 
 *** 1.2
 
