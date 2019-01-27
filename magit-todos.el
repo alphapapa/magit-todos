@@ -616,8 +616,7 @@ This function should be called from inside a ‘magit-status’ buffer."
                   (let ((magit-insert-section--parent magit-root-section))
                     (magit-insert-section (todos)
                       (magit-insert-heading (concat (propertize "TODOs" 'face 'magit-section-heading)
-                                                    " (0)" reminder)))
-                    (insert "\n")))
+                                                    " (0)" reminder "\n")))))
               (let ((section (magit-todos--insert-groups :type 'todos
                                :heading (format "%s (%s)%s"
                                                 (propertize "TODOs" 'face 'magit-section-heading)
@@ -728,8 +727,7 @@ sections."
                                                            item))
                                           (truncate-string-to-width it width))))
                         (magit-insert-section (todos-item item)
-                          (insert string))
-                        (insert "\n"))))))
+                          (insert string "\n")))))))
     (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
     ;; Don't forget to return the section!
     section))
