@@ -1029,6 +1029,11 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                 (search-regexp (rxt-elisp-to-pcre
                                 (rx-to-string
                                  `(or
+                                   ;; LaTeX Macro
+                                   (seq "\\"
+                                        (group (or ,@keywords))
+                                        (optional (group (1+ blank)))
+                                        "{")
                                    ;; Org item
                                    (seq bol (group (1+ "*"))
                                         (1+ blank)
@@ -1049,6 +1054,13 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                                            ;; Line
                                            (group-n 2 (1+ digit)) ":"
                                            (or
+                                            ;; LaTeX
+                                            (seq (optional (1+ not-newline))
+                                                 "\\"
+                                                 (group-n 4 (or ,@keywords))
+                                                 (optional (1+ blank))
+                                                 "{"
+                                                 (group-n 5 (1+ (not (any "}")))))
                                             ;; Org item
                                             (seq (group-n 1 (1+ "*"))
                                                  (1+ blank)
