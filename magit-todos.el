@@ -219,6 +219,32 @@ Note: the suffix applies only to non-Org files."
                  (string :tag "Custom regexp"))
   :package-version '(magit-todos . "1.2"))
 
+
+;; FIXME: Here we miss the defcustom forms, and I still have to update the help texts.
+(setq magit-todos-keyword-prefix
+      (rx (optional
+           (or (seq (*? not-newline) "\\")
+               (seq (group (1+ "*")) (1+ blank))
+               (or bol (seq (*? not-newline ) (1+ blank)))))))
+
+(setq magit-todos-keyword-suffix
+      (rx
+       (* blank)
+       (optional
+        (or (seq "(" (group (1+ (not (any ")")))) ")")
+            (seq "[" (group (1+ (not (any "]")))) "]")))))
+
+(setq magit-todos-description-suffix (rx
+                                      (or
+                                       ;; LaTex Argument
+                                       (seq (*? blank)
+                                            "{" (group (1+ (not (any "}")))) "}")
+                                       ;; Anything up to the newline
+                                       (seq (optional ":")
+                                            (1+ blank)
+                                            (group (1+ not-newline)) eol))))
+
+
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
   :type '(repeat string)
@@ -656,24 +682,11 @@ sections."
              (> (length group-fns) 0))
         ;; Insert more groups
         (let* ((groups (--> (-group-by (car group-fns) items)
-                            (cl-loop for group in-ref it
-                                     ;; HACK: Set ":" keys to nil so they'll be grouped together.
-                                     do (pcase (car group)
-                                          (":" (setf (car group) nil)))
-                                     finally return it)
                             (magit-todos--coalesce-groups it)))
                (section (magit-insert-section ((eval type))
                           (magit-insert-heading heading)
                           (cl-loop for (group-type . items) in groups
-                                   for group-name = (pcase group-type
-                                                      ;; Use "[Other]" instead of empty group name.
-                                                      ;; HACK: ":" is hard-coded, even though the
-                                                      ;; suffix regexp could differ. If users change
-                                                      ;; the suffix so this doesn't apply, it
-                                                      ;; shouldn't cause any problems, it just won't
-                                                      ;; look as pretty.
-                                                      ((or "" ":" 'nil) "[Other]")
-                                                      (_ (s-chop-suffix ":" group-type)))
+                                   for group-name = (or group-type "[Other]")
                                    do (magit-todos--insert-groups
                                         :depth (1+ depth) :group-fns (cdr group-fns)
                                         :type (intern group-name) :items items
@@ -901,14 +914,19 @@ if the process's buffer has already been deleted."
   (format "%s%s %s"
           (propertize (magit-todos-item-keyword item)
                       'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
-          (or (magit-todos-item-suffix item) "")
+          (--if-let (magit-todos-item-suffix item)
+              (format "(%s)" it)
+              "")
           (or (magit-todos-item-description item) "")))
 
 (defun magit-todos--format-org (item)
   "Return ITEM formatted as from an Org file."
   (magit-todos--fontify-like-in-org-mode
    (concat (magit-todos-item-org-level item) " "
-           (magit-todos-item-keyword item) " "
+           (magit-todos-item-keyword item)
+           (--if-let (magit-todos-item-suffix item)
+               (format " (%s) " it)
+             " ")
            (magit-todos-item-description item))))
 
 ;;;;; Sorting
@@ -944,6 +962,25 @@ if the process's buffer has already been deleted."
            (magit-todos-item-suffix b)))
 
 ;;;; Scanners
+
+(defun magit-todos--tree-transform (match-p transform-p tree)
+  "Depth-first seach in tree.  until we find (eq) match and
+   tranform the subtree via calling transform."
+  (cond
+   ((not (listp tree)) tree)
+   ((funcall match-p (car tree))  (funcall transform-p tree))
+   (t (cons (car tree)
+            (mapcar #'(lambda (child) (magit-todos--tree-transform match-p transform-p child))
+                    (cdr tree))))))
+
+
+(defun magit-todos--set-outer-group (group-n regexp)
+  (magit-todos--tree-transform
+   #'(lambda (atom) (member atom '(group submatch)))
+   #'(lambda (child) (append (list 'group-n group-n)
+                        (cdr child)))
+   (rxt-elisp-to-rx regexp)))
+
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
   "Define a `magit-todos' scanner named NAME.
@@ -1028,51 +1065,25 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                 (keywords magit-todos-keywords-list)
                 (search-regexp (rxt-elisp-to-pcre
                                 (rx-to-string
-                                 `(or
-                                   ;; LaTeX Macro
-                                   (seq "\\"
-                                        (group (or ,@keywords))
-                                        (optional (group (1+ blank)))
-                                        "{")
-                                   ;; Org item
-                                   (seq bol (group (1+ "*"))
-                                        (1+ blank)
-                                        (group (or ,@keywords))
-                                        (1+ space)
-                                        (group (1+ not-newline)))
-                                   ;; Non-Org
-                                   (seq (or bol (1+ blank))
-                                        (group (or ,@keywords))
-                                        (regexp ,magit-todos-keyword-suffix)
-                                        (optional (1+ blank)
-                                                  (group (1+ not-newline))))))))
+                                 `(seq
+                                   bol
+                                   (regexp ,magit-todos-keyword-prefix)
+                                   (group (or ,@keywords))
+                                   (regexp ,magit-todos-keyword-suffix)
+                                   (regexp ,magit-todos-description-suffix)
+                                   ))))
                 (results-regexp (or ,results-regexp
                                     (rx-to-string
-                                     `(seq bol
-                                           ;; Filename
-                                           (group-n 8 (1+ (not (any ":")))) ":"
-                                           ;; Line
-                                           (group-n 2 (1+ digit)) ":"
-                                           (or
-                                            ;; LaTeX
-                                            (seq (optional (1+ not-newline))
-                                                 "\\"
-                                                 (group-n 4 (or ,@keywords))
-                                                 (optional (1+ blank))
-                                                 "{"
-                                                 (group-n 5 (1+ (not (any "}")))))
-                                            ;; Org item
-                                            (seq (group-n 1 (1+ "*"))
-                                                 (1+ blank)
-                                                 (group-n 4 (or ,@keywords))
-                                                 (1+ blank)
-                                                 (group-n 5 (1+ not-newline)))
-                                            ;; Non-Org
-                                            (seq (optional (1+ not-newline))
-                                                 (group-n 4 (or ,@keywords))
-                                                 (optional (group-n 6 (regexp ,magit-todos-keyword-suffix)))
-                                                 (optional (1+ blank))
-                                                 (optional (group-n 5 (1+ not-newline)))))))))
+                                     `(seq
+                                       bol
+                                       ;; Filename
+                                       (group-n 8 (1+ (not (any ":")))) ":"
+                                       ;; Line
+                                       (group-n 2 (1+ digit)) ":"
+                                       ,(magit-todos--set-outer-group 1 magit-todos-keyword-prefix)
+                                       (group-n 4 (or ,@keywords))
+                                       ,(magit-todos--set-outer-group 6 magit-todos-keyword-suffix)
+                                       ,(magit-todos--set-outer-group 5 magit-todos-description-suffix)))))
                 (command (-flatten
                           (-non-nil
                            (list (when magit-todos-nice
@@ -1194,7 +1205,6 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 (custom-reevaluate-setting 'magit-todos-scanner)
 
 ;;;; Footer
-
 (provide 'magit-todos)
 
 ;;; magit-todos.el ends here
