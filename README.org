@@ -119,6 +119,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *Fixed*
 +  Properly unbind key when mode is disabled. ([[https://github.com/alphapapa/magit-todos/pull/74][#74]].  Thanks to [[https://github.com/akirak][Akira Komamura]].)
++  Don't show message when key is already bound correctly.  ([[https://github.com/alphapapa/magit-todos/pull/75][#75]].  Thanks to [[https://github.com/akirak][Akira Komamura]].)
 
 *** 1.1.7
 
