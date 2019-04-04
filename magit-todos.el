@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.1.7
+;; Version: 1.1.8-pre
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -339,7 +339,7 @@ used."
                                 'append)
         (add-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook 'append))
     ;; Disable mode
-    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-jump-to-todos)
+    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-todos-jump-to-todos)
       (define-key magit-status-mode-map "jT" nil))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)
     (remove-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook)))

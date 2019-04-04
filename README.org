@@ -98,6 +98,28 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 :TOC:      0
 :END:
 
+*** 1.2-pre
+
+*Added*
++  Allow ~magit-todos-list~ to work outside git repos.
++  Option ~magit-todos-keyword-suffix~ replaces ~magit-todos-require-colon~, allowing for common and custom suffixes after item keywords (e.g. to match items like =TODO(user):=).  (Fixes [[https://github.com/alphapapa/magit-todos/issues/56][#56]].  Thanks to [[https://github.com/thiderman][Lowe Thiderman]] for suggesting.)
++  Optionally group and sort by item suffixes (e.g. handy when suffixes contain usernames).
++  Bind @@html:<kbd>@@RET@@html:</kbd>@@ on top-level =TODOs= section heading to ~magit-todos-list~ command.
+
+*Fixed*
++  Don't fontify section item counts.  (Thanks to [[https://github.com/m-cat][Marcin Swieczkowski]].)
+
+*Worked Around*
++  Issue in =async= regarding deleted buffers/processes.  This is not an ideal solution, but it solves the problem for now.
+
+*Removed*
++ Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
+
+*** 1.1.8
+
+*Fixed*
++  Properly unbind key when mode is disabled. ([[https://github.com/alphapapa/magit-todos/pull/74][#74]].  Thanks to [[https://github.com/akirak][Akira Komamura]].)
+
 *** 1.1.7
 
 *Fixed*
