@@ -121,6 +121,7 @@ magit-status buffer.")
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
     (define-key map "jl" #'magit-todos-list)
+    (define-key map "b" #'magit-todos-toggle-branch-list)
     (define-key map (kbd "RET") #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
@@ -150,6 +151,9 @@ A time value as returned by `current-time'.")
 
 (defvar magit-todos-scanners nil
   "Scanners defined by `magit-todos-defscanner'.")
+
+(defvar magit-todos-section-heading "TODOs"
+  "Allows overriding of section heading.")
 
 ;;;; Customization
 
@@ -321,6 +325,17 @@ used."
   "Glob patterns to exclude from searches."
   :type '(repeat string))
 
+(defcustom magit-todos-show-branch-list 'branch
+  "Show branch diff to-do list.
+In the master branch, this shows whatever items are listed by
+\"git diff HEAD^\".
+
+This can be toggled locally in Magit buffers with command
+`magit-todos-toggle-branch-list'."
+  :type '(choice (const :tag "Never" nil)
+                 (const :tag "In non-master branches" branch)
+                 (const :tag "Always" t)))
+
 ;;;; Commands
 
 ;;;###autoload
@@ -353,10 +368,18 @@ Only necessary when option `magit-todos-update' is nil."
   (unless magit-todos-mode
     (user-error "Please activate `magit-todos-mode'"))
   (let ((inhibit-read-only t))
+    ;; Delete twice since there might also be the branch-local section.
+    (magit-todos--delete-section [* todos])
     (magit-todos--delete-section [* todos])
     ;; HACK: See other note on `magit-todos-updating'.
     (setq magit-todos-updating t)
     (magit-todos--insert-todos)))
+
+(defun magit-todos-toggle-branch-list ()
+  "Toggle branch diff to-do list in current Magit buffer."
+  (interactive)
+  (setq-local magit-todos-show-branch-list (not magit-todos-show-branch-list))
+  (magit-todos-update))
 
 (defun magit-todos-jump-to-item (&optional peek)
   "Show current item.
@@ -482,7 +505,7 @@ Chooses automatically in order defined in `magit-todos-scanners'."
            when (eval (alist-get 'test scanner))
            return (alist-get 'function scanner)))
 
-(defun magit-todos--scan-callback (magit-status-buffer results-regexp process)
+(cl-defun magit-todos--scan-callback (&key magit-status-buffer results-regexp process &allow-other-keys)
   "Callback for `magit-todos--git-grep-scan-async'."
   ;; SOMEDAY: Perhaps move process buffer parsing into separate function.
   (with-current-buffer (process-buffer process)
@@ -492,6 +515,52 @@ Chooses automatically in order defined in `magit-todos-scanners'."
                while item
                collect item
                do (forward-line 1)))))
+
+(cl-defun magit-todos--git-diff-callback (&key magit-status-buffer results-regexp search-regexp-elisp process heading
+                                               &allow-other-keys)
+  "Callback for git diff scanner output."
+  ;; NOTE: Doesn't handle newlines in filenames or diff.mnemonicPrefix.
+  (cl-macrolet ((next-diff () `(re-search-forward (rx bol "diff --git ") nil t))
+                (next-filename () `(when (re-search-forward (rx bol "+++ b/" (group (1+ nonl))) nil t)
+                                     (match-string 1)))
+                (next-hunk-line-number () `(when (re-search-forward (rx bol "@@ -"
+                                                                        (1+ digit) (optional "," (1+ digit)) (1+ space)
+                                                                        "+" (group (1+ digit)) (optional "," (1+ digit)))
+                                                                    file-end t)
+                                             (string-to-number (match-string 1))))
+                (file-end () `(or (save-excursion
+                                    (when (re-search-forward (rx bol "diff --git ")
+                                                             nil t)
+                                      (match-beginning 0)))
+                                  (point-max)))
+                (hunk-end () `(or (save-excursion
+                                    (when (re-search-forward (rx (or (seq bol "diff --git ")
+                                                                     (seq bol "@@ ")))
+                                                             nil t)
+                                      (match-beginning 0)))
+                                  (point-max))))
+    (with-current-buffer (process-buffer process)
+      (goto-char (point-min))
+      (let (items filename file-end hunk-end line-number)
+        (while (next-diff)
+          (while (setf filename (next-filename))
+            (setf file-end (file-end))
+            (while (setf line-number (next-hunk-line-number))
+              (setf hunk-end (hunk-end))
+              (while (re-search-forward (rx bol "+") hunk-end t)
+                ;; Since "git diff-index" doesn't accept PCREs to its "-G" option, we have to test the search regexp ourselves.
+                (when (re-search-forward search-regexp-elisp (line-end-position) t)
+                  (when-let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
+                              (item (with-temp-buffer
+                                      ;; NOTE: We fake grep output by inserting the filename, line number, position, etc.
+                                      ;; This lets us use the same results regexp that's used for grep-like output.
+                                      (save-excursion
+                                        (insert filename ":" (number-to-string line-number) ":0: " line))
+                                      (magit-todos--line-item results-regexp filename))))
+                    (push item items)))
+                (cl-incf line-number)))))
+        (let ((magit-todos-section-heading heading))
+          (magit-todos--insert-items magit-status-buffer items))))))
 
 (defun magit-todos--delete-section (condition)
   "Delete the section specified by CONDITION from the Magit status buffer.
@@ -562,8 +631,16 @@ This function should be called from inside a ‘magit-status’ buffer."
                                             :magit-status-buffer (current-buffer)
                                             :directory default-directory
                                             :depth magit-todos-depth)))
-    (_   ; Caching and cache not expired, or not automatic and not manually updating now
-     (magit-todos--insert-items (current-buffer) magit-todos-item-cache))))
+    (_ ; Caching and cache not expired, or not automatic and not manually updating now
+     (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
+  (when (or (eq magit-todos-show-branch-list t)
+            (and (eq magit-todos-show-branch-list 'branch)
+                 (not (string= "master" (magit-get-current-branch)))))
+    ;; Insert branch-local items.
+    (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
+                                     :directory default-directory
+                                     :depth magit-todos-depth
+                                     :heading "TODOs (branch)")))
 
 (defun magit-todos--insert-items (magit-status-buffer items)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
@@ -616,11 +693,11 @@ This function should be called from inside a ‘magit-status’ buffer."
                   ;; Manual updates: Insert section to remind user
                   (let ((magit-insert-section--parent magit-root-section))
                     (magit-insert-section (todos)
-                      (magit-insert-heading (concat (propertize "TODOs" 'face 'magit-section-heading)
+                      (magit-insert-heading (concat (propertize magit-todos-section-heading 'face 'magit-section-heading)
                                                     " (0)" reminder "\n")))))
               (let ((section (magit-todos--insert-groups :type 'todos
                                :heading (format "%s (%s)%s"
-                                                (propertize "TODOs" 'face 'magit-section-heading)
+                                                (propertize magit-todos-section-heading 'face 'magit-section-heading)
                                                 num-items reminder)
                                :group-fns group-fns
                                :items items
@@ -945,7 +1022,8 @@ if the process's buffer has already been deleted."
 
 ;;;; Scanners
 
-(cl-defmacro magit-todos-defscanner (name &key test command results-regexp)
+(cl-defmacro magit-todos-defscanner (name &key test command results-regexp
+                                          (callback (function 'magit-todos--scan-callback)))
   "Define a `magit-todos' scanner named NAME.
 
 NAME is a string, which may contain spaces.  It is only used for
@@ -974,8 +1052,11 @@ be passed to the scanner's max-depth option (i.e. `magit-todos-depth').
 `keywords': List of item keywords defined in
 `magit-todos-keywords-list'.
 
-`search-regexp': The regular expression to be passed to the
-scanner.
+`search-regexp-pcre': PCRE-compatible regular expression to be passed
+to the scanner process.
+
+`search-regexp-elisp': Emacs regular expression, which may be
+used for scanners written as Emacs Lisp functions.
 
 RESULTS-REGEXP is an optional string or unquoted sexp which is
 used to match results in the scanner process's output buffer.
@@ -989,6 +1070,11 @@ Where MATCH may also match Org outline heading stars when
 appropriate.  Custom regexps may also match column numbers or
 byte offsets in the appropriate numbered groups; see
 `make-magit-todos-item'.
+
+CALLBACK is a function which is called to parse the scanner
+process's buffer.  For grep-like scanners that output results in
+a format suitable for RESULTS-REGEXP, the default callback,
+`magit-todos--scan-callback', should be used.
 
 The macro defines the following:
 
@@ -1016,31 +1102,31 @@ It also adds the scanner to the customization variable
        (defcustom ,extra-args-var nil
          ,(format "Extra arguments passed to %s." name)
          :type '(repeat string))
-       (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth)
-         ,(format "Scan for to-dos with %s, then call `magit-todos--scan-callback'.
-MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'."
-                  name)
+       (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth heading)
+         ,(format "Scan for to-dos with %s, then call `%s'.
+MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'.  HEADING is passed to `%s'."
+                  name callback callback)
          (let* ((process-connection-type 'pipe)
                 (directory (f-relative directory default-directory))
                 (extra-args (when ,extra-args-var
                               (--map (s-split (rx (1+ space)) it 'omit-nulls)
                                      ,extra-args-var)))
                 (keywords magit-todos-keywords-list)
-                (search-regexp (rxt-elisp-to-pcre
-                                (rx-to-string
-                                 `(or
-                                   ;; Org item
-                                   (seq bol (group (1+ "*"))
-                                        (1+ blank)
-                                        (group (or ,@keywords))
-                                        (1+ space)
-                                        (group (1+ not-newline)))
-                                   ;; Non-Org
-                                   (seq (or bol (1+ blank))
-                                        (group (or ,@keywords))
-                                        (regexp ,magit-todos-keyword-suffix)
-                                        (optional (1+ blank)
-                                                  (group (1+ not-newline))))))))
+                (search-regexp-elisp (rx-to-string
+                                      `(or
+                                        ;; Org item
+                                        (seq bol (group (1+ "*"))
+                                             (1+ blank)
+                                             (group (or ,@keywords))
+                                             (1+ space)
+                                             (group (1+ not-newline)))
+                                        ;; Non-Org
+                                        (seq (or bol (1+ blank))
+                                             (group (or ,@keywords))
+                                             (regexp ,magit-todos-keyword-suffix)
+                                             (optional (1+ blank)
+                                                       (group (1+ not-newline)))))))
+                (search-regexp-pcre (rxt-elisp-to-pcre search-regexp-elisp))
                 (results-regexp (or ,results-regexp
                                     (rx-to-string
                                      `(seq bol
@@ -1072,7 +1158,11 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                     do (setf elt (number-to-string elt)))
            (magit-todos--async-start-process ,scan-fn-name
              :command command
-             :finish-func (apply-partially #'magit-todos--scan-callback magit-status-buffer results-regexp))))
+             :finish-func (apply-partially ,callback
+                                           :magit-status-buffer magit-status-buffer :results-regexp results-regexp
+                                           :search-regexp-elisp search-regexp-elisp
+                                           :heading heading
+                                           :process)))) ; Process is appended to the list.
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
@@ -1100,7 +1190,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                  (when magit-todos-exclude-globs
                    (--map (list "--glob" (concat "!" it))
                           magit-todos-exclude-globs))
-                 extra-args search-regexp directory))
+                 extra-args search-regexp-pcre directory))
 
 (magit-todos-defscanner "git grep"
   :test (string-match "--perl-regexp" (shell-command-to-string "git grep --help"))
@@ -1111,11 +1201,18 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                  (when magit-todos-ignore-case
                    "--ignore-case")
                  "--perl-regexp"
-                 "-e" search-regexp
+                 "-e" search-regexp-pcre
                  extra-args "--" directory
                  (when magit-todos-exclude-globs
                    (--map (concat ":!" it)
                           magit-todos-exclude-globs))))
+
+(magit-todos-defscanner "git diff"
+  ;; NOTE: This scanner implements the regexp *searching* in elisp rather than in the
+  ;; external process because, unlike "git grep", "git diff" does not support PCRE.
+  :test t
+  :command (list "git" "--no-pager" "diff" "--no-color" "-U0" "HEAD^")
+  :callback #'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
@@ -1174,7 +1271,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                          (when magit-todos-ignore-case
                            "--ignore-case")
                          extra-args
-                         search-regexp "{}" "+"))))
+                         search-regexp-pcre "{}" "+"))))
 
 ;;;;; Set scanner default value
 

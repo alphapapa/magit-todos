@@ -38,6 +38,10 @@ Items in =KEYWORD(username):= format are also read:
 
 [[screenshots/thiderman.png]]
 
+Items specific to the current branch (or =git diff=) can be displayed in a separate list:
+
+[[screenshots/branch-list.png]]
+
 ** Installation
 :PROPERTIES:
 :TOC:      0
@@ -87,6 +91,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *In Magit status buffer:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: Jump to the to-do list.  If the section is empty (e.g. when using manual updates), it will scan for items.
 
+*With point on to-do list heading:*
++  @@html:<kbd>@@b@@html:</kbd>@@ :: Show branch (=git diff=) to-do list.
+
 *With point in to-do list:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: When configured for manual updates, manually update the to-do list.
 +  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
@@ -110,6 +117,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 :END:
 
 *** 1.3-pre
+
+*Added*
++  Branch diff task list.  See new option =magit-todos-show-branch-list=, and command =magit-todos-toggle-branch-list=, bound to =b= with point on to-do list heading.  ([[https://github.com/alphapapa/magit-todos/issues/77][#77]].  Thanks to [[https://github.com/arronmabrey][Arron Mabrey]] for the suggestion.)
 
 *Internal*
 +  Put newline in section headings.  ([[https://github.com/alphapapa/magit-todos/pull/68][#68]].  Thanks to [[https://github.com/vermiculus][Sean Allred]].)
