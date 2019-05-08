@@ -331,16 +331,17 @@ used."
   :global t
   (if magit-todos-mode
       (progn
-        (if (lookup-key magit-status-mode-map "jT")
-            (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")
-          (define-key magit-status-mode-map "jT" #'magit-todos-jump-to-todos))
+        (pcase (lookup-key magit-status-mode-map "jT")
+          ('nil (define-key magit-status-mode-map "jT" #'magit-todos-jump-to-todos))
+          ('magit-todos-jump-to-todos nil)
+          (_ (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")))
         (magit-add-section-hook 'magit-status-sections-hook
                                 #'magit-todos--insert-todos
                                 'magit-insert-staged-changes
                                 'append)
         (add-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook 'append))
     ;; Disable mode
-    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-jump-to-todos)
+    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-todos-jump-to-todos)
       (define-key magit-status-mode-map "jT" nil))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)
     (remove-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook)))
