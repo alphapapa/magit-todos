@@ -109,7 +109,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 :TOC:      0
 :END:
 
-*** 1.2-pre
+*** 1.2
 
 *Added*
 +  Allow ~magit-todos-list~ to work outside git repos.
