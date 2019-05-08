@@ -569,6 +569,7 @@ This function should be called from inside a ‘magit-status’ buffer."
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
   (declare (indent defun))
   ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
+  ;; MAYBE: Use `magit-insert-section-body'.
   (when (not (buffer-live-p magit-status-buffer))
     (message "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
   (let* ((items (magit-todos--sort items))
