@@ -1,4 +1,4 @@
-;;; magit-todos.el --- Show source file TODOs in Magit  -*- lexical-binding: t; -*-
+﻿;;; magit-todos.el --- Show source file TODOs in Magit  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018 Adam Porter
 
@@ -1193,7 +1193,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
                  extra-args search-regexp-pcre directory))
 
 (magit-todos-defscanner "git grep"
-  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --help"))
+  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --not-a-valid-option"))
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
                  (when depth
