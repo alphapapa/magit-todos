@@ -328,13 +328,17 @@ used."
 (defcustom magit-todos-show-branch-list 'branch
   "Show branch diff to-do list.
 In the master branch, this shows whatever items are listed by
-\"git diff HEAD^\".
+\"git diff magit-todos-branch-list-commit-ref\".
 
 This can be toggled locally in Magit buffers with command
 `magit-todos-toggle-branch-list'."
   :type '(choice (const :tag "Never" nil)
                  (const :tag "In non-master branches" branch)
                  (const :tag "Always" t)))
+
+(defcustom magit-todos-branch-list-commit-ref '"HEAD^"
+  "Commit ref passed to \"git diff\" command used to make branch diff list."
+  :type 'string)
 
 ;;;; Commands
 
@@ -1218,7 +1222,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
   :command (progn
              ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
              (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
-             (list "git" "--no-pager" "diff" "--no-color" "-U0" "HEAD^"))
+             (list "git" "--no-pager" "diff" "--no-color" "-U0" magit-todos-branch-list-commit-ref))
   :callback 'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"
