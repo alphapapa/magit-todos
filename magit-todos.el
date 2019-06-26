@@ -328,13 +328,17 @@ used."
 (defcustom magit-todos-show-branch-list 'branch
   "Show branch diff to-do list.
 In the master branch, this shows whatever items are listed by
-\"git diff HEAD^\".
+\"git diff magit-todos-branch-list-commit-ref\".
 
 This can be toggled locally in Magit buffers with command
 `magit-todos-toggle-branch-list'."
   :type '(choice (const :tag "Never" nil)
                  (const :tag "In non-master branches" branch)
                  (const :tag "Always" t)))
+
+(defcustom magit-todos-branch-list-commit-ref '"HEAD^"
+  "Commit ref passed to \"git diff\" command used to make branch diff list."
+  :type 'string)
 
 ;;;; Commands
 

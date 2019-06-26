@@ -119,7 +119,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *** 1.3-pre
 
 *Added*
-+  Branch diff task list.  See new option =magit-todos-show-branch-list=, and command =magit-todos-toggle-branch-list=, bound to =b= with point on to-do list heading.  ([[https://github.com/alphapapa/magit-todos/issues/30][#30]], [[https://github.com/alphapapa/magit-todos/issues/77][#77]].  Thanks to [[https://github.com/itamarst][Itamar Turner-Trauring]] and  [[https://github.com/arronmabrey][Arron Mabrey]] for the suggestion.)
++  Branch diff task list.  See new options =magit-todos-show-branch-list= and =magit-todos-branch-list-commit-ref=, and command =magit-todos-branch-list-toggle=, bound to =b= with point on to-do list heading.  ([[https://github.com/alphapapa/magit-todos/issues/30][#30]], [[https://github.com/alphapapa/magit-todos/issues/77][#77]], [[https://github.com/alphapapa/magit-todos/pull/82][#82]].  Thanks to [[https://github.com/itamarst][Itamar Turner-Trauring]] and [[https://github.com/arronmabrey][Arron Mabrey]] for the suggestion, and to [[https://github.com/smaret][Sébastien Maret]] for implementing the commit-ref option.)
 
 *Internal*
 +  Put newline in section headings.  ([[https://github.com/alphapapa/magit-todos/pull/68][#68]].  Thanks to [[https://github.com/vermiculus][Sean Allred]].)
