@@ -135,6 +135,18 @@ magit-status buffer.")
 See https://magit.vc/manual/magit/Creating-Sections.html for more
 details about how section maps work.")
 
+(defvar magit-todos-follow-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "n") 'magit-todos-next-todo)
+    (define-key map (kbd "C-n") 'magit-todos-next-todo)
+    (define-key map (kbd "<down>") 'magit-todos-next-todo)
+
+    (define-key map (kbd "p") 'magit-todos-previous-todo)
+    (define-key map (kbd "C-p") 'magit-todos-previous-todo)
+    (define-key map (kbd "<up>") 'magit-todos-previous-todo)
+    map)
+  "Keymap for `magit-todos-follow-mode'.")
+
 (defvar-local magit-todos-show-filenames nil
   "Whether to show filenames next to to-do items.
 Set automatically depending on grouping.")
@@ -365,6 +377,13 @@ This can be toggled locally in Magit buffers with command
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)
     (remove-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook)))
 
+(define-minor-mode magit-todos-follow-mode
+  :init-value nil
+  :lighter " Follow" 
+  :keymap magit-todos-follow-map
+  :group 'magit-todos
+  )
+
 (defun magit-todos-update ()
   "Update the to-do list manually.
 Only necessary when option `magit-todos-update' is nil."
@@ -402,6 +421,22 @@ If PEEK is non-nil, keep focus in status buffer window."
   "Peek at current item."
   (interactive)
   (magit-todos-jump-to-item :peek t))
+
+(defun magit-todos-next-todo ()
+  "Peek at next item."
+  (interactive)
+  (magit-section-forward)
+  (let* ((item (oref (magit-current-section) value)))
+    (when (cl-struct-p item)
+      (magit-todos-peek-at-item))))
+
+(defun magit-todos-previous-todo ()
+  "Peek at previous item."
+  (interactive)
+  (magit-section-backward)
+  (let* ((item (oref (magit-current-section) value)))
+    (when (cl-struct-p item)
+      (magit-todos-peek-at-item))))
 
 ;;;;; Jump to section
 
