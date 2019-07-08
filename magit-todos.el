@@ -401,14 +401,17 @@ Only necessary when option `magit-todos-update' is nil."
   "Show current item.
 If PEEK is non-nil, keep focus in status buffer window."
   (interactive)
-  (let* ((status-window (selected-window))
-         (buffer (magit-todos--item-buffer item)))
-    (pop-to-buffer buffer)
-    (magit-todos--goto-item item)
-    (when (derived-mode-p 'org-mode)
-      (org-show-entry))
-    (when peek
-      (select-window status-window))))
+  (if-let* ((status-window (selected-window))
+            (item (oref (magit-current-section) value))
+            (is-valid-item (cl-struct-p item))
+            (buffer (magit-todos--item-buffer item)))
+      (progn
+        (pop-to-buffer buffer)
+        (magit-todos--goto-item item)
+        (when (derived-mode-p 'org-mode)
+          (org-show-entry))
+        (when peek
+          (select-window status-window)))))
 
 (defun magit-todos-peek-at-item ()
   "Peek at current item."
@@ -419,17 +422,13 @@ If PEEK is non-nil, keep focus in status buffer window."
   "Peek at next item."
   (interactive)
   (magit-section-forward)
-  (let* ((item (oref (magit-current-section) value)))
-    (when (cl-struct-p item)
-      (magit-todos-peek-at-item))))
+  (magit-todos-peek-at-item))
 
 (defun magit-todos-previous-todo ()
   "Peek at previous item."
   (interactive)
   (magit-section-backward)
-  (let* ((item (oref (magit-current-section) value)))
-    (when (cl-struct-p item)
-      (magit-todos-peek-at-item))))
+  (magit-todos-peek-at-item))
 
 ;;;;; Jump to section
 
