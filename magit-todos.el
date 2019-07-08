@@ -137,13 +137,8 @@ details about how section maps work.")
 
 (defvar magit-todos-follow-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "n") 'magit-todos-next-todo)
-    (define-key map (kbd "C-n") 'magit-todos-next-todo)
-    (define-key map (kbd "<down>") 'magit-todos-next-todo)
-
-    (define-key map (kbd "p") 'magit-todos-previous-todo)
-    (define-key map (kbd "C-p") 'magit-todos-previous-todo)
-    (define-key map (kbd "<up>") 'magit-todos-previous-todo)
+    (define-key map [remap magit-section-forward] #'magit-todos-next-todo)
+    (define-key map [remap magit-section-backward] #'magit-todos-previous-todo)
     map)
   "Keymap for `magit-todos-follow-mode'.")
 
@@ -379,10 +374,8 @@ This can be toggled locally in Magit buffers with command
 
 (define-minor-mode magit-todos-follow-mode
   :init-value nil
-  :lighter " Follow" 
   :keymap magit-todos-follow-map
-  :group 'magit-todos
-  )
+  :group 'magit-todos)
 
 (defun magit-todos-update ()
   "Update the to-do list manually.
