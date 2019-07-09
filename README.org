@@ -121,6 +121,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *Updated*
 +  Use =magit-setup-buffer= instead of =magit-mode-setup=.
 
+*Internal*
++  Add synchronous mode to scanner functions, which return results directly usable by other code.
+
 *** 1.3
 
 *Added*
