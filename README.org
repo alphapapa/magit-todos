@@ -131,6 +131,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Added*
 +  Commands =helm-magit-todos= and =ivy-magit-todos=, which display items with Helm and Ivy.  (Note that Helm and Ivy are not required, nor does this package depend on them; they are only used if present.)
 
+*Fixed*
++  Warn about files containing lines too long for Emacs's regexp matcher to handle, rather than aborting the scan ([[https://github.com/alphapapa/magit-todos/issues/63][#63]]).
+
 *Updated*
 +  Use =magit-setup-buffer= instead of =magit-mode-setup=.
 

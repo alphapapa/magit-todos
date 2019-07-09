@@ -517,12 +517,22 @@ Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESUL
 
 (defun magit-todos--buffer-items (results-regexp)
   "Return list of `magit-todos-item' found in current buffer for RESULTS-REGEXP."
-  (save-excursion
-    (goto-char (point-min))
-    (cl-loop for item = (magit-todos--line-item results-regexp)
-             while item
-             collect item
-             do (forward-line 1))))
+  (let ((items))
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+        (--when-let (condition-case err
+                        (magit-todos--line-item results-regexp)
+                      ;; Files with very, very long lines may cause Emacs's regexp matcher to overflow.
+                      ;; Rather than abort the whole scan and raise an error, try to handle it gracefully.
+                      ;; FIXME: This may raise multiple warnings per file.
+                      (error (if (string= "Stack overflow in regexp matcher" (error-message-string err))
+                                 (let ((filename (buffer-substring (point) (1- (re-search-forward ":")))))
+                                   (display-warning 'magit-todos (concat "File has lines too long for Emacs to search.  Consider excluding it from scans: " filename)))
+                               (signal (car err) (cdr err)))))
+          (push it items))
+        (forward-line 1)))
+    (nreverse items)))
 
 (cl-defun magit-todos--git-diff-callback (&key magit-status-buffer results-regexp search-regexp-elisp process heading
                                                &allow-other-keys)
