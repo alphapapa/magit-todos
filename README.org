@@ -99,10 +99,12 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
 +  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
 +  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
-     
-Activate =magit-todos-follow-mode= in the to-do buffer, use: 
-+  @@html:<kbd>@@n@@html:</kbd>@@ :: Follow the next todo item and display the corresponding file
-+  @@html:<kbd>@@p@@html:</kbd>@@ :: Follow the previous todo item and display the corresponding file
+
+*When magit-todos-follow-mode is activated:* 
++  @@html:<kbd>@@n@@html:</kbd>@@ :: Peek at the next item.
++  @@html:<kbd>@@p@@html:</kbd>@@ :: Peek at the previous item.
+
+
 
 *** Commands
 
