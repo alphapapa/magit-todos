@@ -385,12 +385,11 @@ Only necessary when option `magit-todos-update' is nil."
   (setq-local magit-todos-branch-list (not magit-todos-branch-list))
   (magit-todos-update))
 
-(defun magit-todos-jump-to-item (&optional peek)
+(cl-defun magit-todos-jump-to-item (&key peek (item (oref (magit-current-section) value)))
   "Show current item.
 If PEEK is non-nil, keep focus in status buffer window."
   (interactive)
   (let* ((status-window (selected-window))
-         (item (oref (magit-current-section) value))
          (buffer (magit-todos--item-buffer item)))
     (pop-to-buffer buffer)
     (magit-todos--goto-item item)
@@ -402,7 +401,7 @@ If PEEK is non-nil, keep focus in status buffer window."
 (defun magit-todos-peek-at-item ()
   "Peek at current item."
   (interactive)
-  (magit-todos-jump-to-item 'peek))
+  (magit-todos-jump-to-item :peek t))
 
 ;;;;; Jump to section
 
@@ -1316,6 +1315,68 @@ When SYNC is non-nil, match items are returned."
 
 ;; Now that all the scanners have been defined, we can set the value.
 (custom-reevaluate-setting 'magit-todos-scanner)
+
+;;;; Helm/Ivy
+
+;; These add optional support for Helm and Ivy.  This code does not require
+;; Helm or Ivy to be installed; it is only called after one of them is loaded.
+
+(with-eval-after-load 'helm
+  (defvar helm-magit-todos-source
+    ;; We use `helm-make-source' instead of `helm-make-sync-source', which is a
+    ;; macro, which won't be present if the user doesn't have Helm installed.
+    (helm-make-source "helm-magit-todos" 'helm-source-sync
+      :candidates #'magit-todos-candidates
+      :action (lambda (item)
+                (magit-todos-jump-to-item :item item))))
+
+  (defun helm-magit-todos ()
+    "Display `magit-todos' items with Helm.
+Note that this uses `magit-todos-items-cache' when a Magit status
+buffer is available for the repository directory, in which case
+the cache is not updated from this command."
+    (interactive)
+    (helm :sources '(helm-magit-todos-source))))
+
+(with-eval-after-load 'ivy
+  (defun ivy-magit-todos ()
+    "Display `magit-todos' items with Ivy.
+Note that this uses `magit-todos-items-cache' when a Magit status
+buffer is available for the repository directory, in which case
+the cache is not updated from this command."
+    (interactive)
+    (ivy-read "TODOs: " (magit-todos-candidates)
+              :action (lambda (item)
+                        (magit-todos-jump-to-item :item (cdr item))))))
+
+;;;;; Support
+
+;; These functions are used by both Helm and Ivy.
+
+(defsubst magit-todos-item-cons (item)
+  "Return ITEM as a (DISPLAY . ITEM) pair.
+Used for e.g. Helm and Ivy."
+  (cons (concat (magit-todos-item-filename item) " "
+                (funcall (if (s-suffix? ".org" (magit-todos-item-filename item))
+                             #'magit-todos--format-org
+                           #'magit-todos--format-plain)
+                         item))
+        item))
+
+(defun magit-todos-candidates ()
+  "Return list of (DISPLAY . ITEM) candidates for e.g. Helm and Ivy."
+  ;; MAYBE: Update the cache appropriately from here.
+  (if-let* ((magit-status-buffer (magit-get-mode-buffer 'magit-status-mode))
+            (items (buffer-local-value 'magit-todos-item-cache magit-status-buffer)))
+      ;; Use cached items.
+      (cl-loop for item in items
+               collect (magit-todos-item-cons item))
+    ;; No cached items: run scan.
+    (when-let* ((items (funcall magit-todos-scanner :sync t
+                                :directory default-directory
+                                :depth magit-todos-depth)))
+      (cl-loop for item in items
+               collect (magit-todos-item-cons item)))))
 
 ;;;; Footer
 
