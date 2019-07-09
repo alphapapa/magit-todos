@@ -579,8 +579,12 @@ See `magit-section-match'.  Also delete it from root section's children."
       (object-remove-from-list magit-root-section 'children section)
       (with-slots (start end) section
         ;; NOTE: We delete 1 past the end because we insert a newline after the section.  I'm not
-        ;; sure if this would generalize to all Magit sections.
-        (delete-region start (1+ end))))))
+        ;; sure if this would generalize to all Magit sections.  But if the end is the same as
+        ;; `point-max', which may be the case if todo items have not yet been inserted, we only
+        ;; delete up to `point-max'.
+        (delete-region start (if (= end (point-max))
+                                 end
+                               (1+ end)))))))
 
 (defun magit-todos--item-buffer (item)
   "Return buffer visiting ITEM."
