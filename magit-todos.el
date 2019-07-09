@@ -1186,7 +1186,7 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
 
 (magit-todos-defscanner "rg"
   :test (executable-find "rg")
-  :command (list "rg" "--no-heading"
+  :command (list "rg" "--no-heading" "--line-number"
                  (when depth
                    (list "--maxdepth" (1+ depth)))
                  (when magit-todos-ignore-case
