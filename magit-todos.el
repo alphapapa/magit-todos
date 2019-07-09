@@ -411,7 +411,8 @@ If PEEK is non-nil, keep focus in status buffer window."
         (when (derived-mode-p 'org-mode)
           (org-show-entry))
         (when peek
-          (select-window status-window)))))
+          (select-window status-window)))
+    (message "Not a todo item.")))
 
 (defun magit-todos-peek-at-item ()
   "Peek at current item."
