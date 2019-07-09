@@ -121,7 +121,7 @@ magit-status buffer.")
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
     (define-key map "jl" #'magit-todos-list)
-    (define-key map "b" #'magit-todos-toggle-branch-list)
+    (define-key map "b" #'magit-todos-branch-list-toggle)
     (define-key map (kbd "RET") #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
@@ -325,13 +325,13 @@ used."
   "Glob patterns to exclude from searches."
   :type '(repeat string))
 
-(defcustom magit-todos-show-branch-list 'branch
+(defcustom magit-todos-branch-list 'branch
   "Show branch diff to-do list.
 In the master branch, this shows whatever items are listed by
-\"git diff magit-todos-branch-list-commit-ref\".
+\"git diff `magit-todos-branch-list-commit-ref'\".
 
 This can be toggled locally in Magit buffers with command
-`magit-todos-toggle-branch-list'."
+`magit-todos-branch-list-toggle'."
   :type '(choice (const :tag "Never" nil)
                  (const :tag "In non-master branches" branch)
                  (const :tag "Always" t)))
@@ -379,10 +379,10 @@ Only necessary when option `magit-todos-update' is nil."
     (setq magit-todos-updating t)
     (magit-todos--insert-todos)))
 
-(defun magit-todos-toggle-branch-list ()
+(defun magit-todos-branch-list-toggle ()
   "Toggle branch diff to-do list in current Magit buffer."
   (interactive)
-  (setq-local magit-todos-show-branch-list (not magit-todos-show-branch-list))
+  (setq-local magit-todos-branch-list (not magit-todos-branch-list))
   (magit-todos-update))
 
 (defun magit-todos-jump-to-item (&optional peek)
@@ -641,8 +641,8 @@ This function should be called from inside a ‘magit-status’ buffer."
                                             :depth magit-todos-depth)))
     (_ ; Caching and cache not expired, or not automatic and not manually updating now
      (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
-  (when (or (eq magit-todos-show-branch-list t)
-            (and (eq magit-todos-show-branch-list 'branch)
+  (when (or (eq magit-todos-branch-list t)
+            (and (eq magit-todos-branch-list 'branch)
                  (not (string= "master" (magit-get-current-branch)))))
     ;; Insert branch-local items.
     (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
