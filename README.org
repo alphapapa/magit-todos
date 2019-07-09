@@ -118,7 +118,8 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *** 1.4-pre
 
-Nothing new yet.
+*Updated*
++  Use =magit-setup-buffer= instead of =magit-mode-setup=.
 
 *** 1.3
 

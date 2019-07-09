@@ -446,7 +446,7 @@ With prefix, prompt for repository."
   "Open buffer showing to-do list of repository at DIRECTORY."
   (magit--tramp-asserts directory)
   (let ((default-directory directory))
-    (magit-mode-setup #'magit-todos-list-mode)))
+    (magit-setup-buffer #'magit-todos-list-mode)))
 
 (define-derived-mode magit-todos-list-mode magit-status-mode "Magit"
   "Mode for looking at repository to-do list.
