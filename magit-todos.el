@@ -509,16 +509,21 @@ Chooses automatically in order defined in `magit-todos-scanners'."
            when (eval (alist-get 'test scanner))
            return (alist-get 'function scanner)))
 
-(cl-defun magit-todos--scan-callback (&key magit-status-buffer results-regexp process &allow-other-keys)
-  "Callback for `magit-todos--git-grep-scan-async'."
-  ;; SOMEDAY: Perhaps move process buffer parsing into separate function.
-  (with-current-buffer (process-buffer process)
+(cl-defun magit-todos--scan-callback (&key callback magit-status-buffer results-regexp process &allow-other-keys)
+  "Call CALLBACK with arguments MAGIT-STATUS-BUFFER and match items.
+Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESULTS-REGEXP."
+  (funcall callback magit-status-buffer
+           (with-current-buffer (process-buffer process)
+             (magit-todos--buffer-items results-regexp))))
+
+(defun magit-todos--buffer-items (results-regexp)
+  "Return list of `magit-todos-item' found in current buffer for RESULTS-REGEXP."
+  (save-excursion
     (goto-char (point-min))
-    (magit-todos--insert-items magit-status-buffer
-      (cl-loop for item = (magit-todos--line-item results-regexp)
-               while item
-               collect item
-               do (forward-line 1)))))
+    (cl-loop for item = (magit-todos--line-item results-regexp)
+             while item
+             collect item
+             do (forward-line 1))))
 
 (cl-defun magit-todos--git-diff-callback (&key magit-status-buffer results-regexp search-regexp-elisp process heading
                                                &allow-other-keys)
@@ -636,6 +641,7 @@ This function should be called from inside a ‘magit-status’ buffer."
      ;; special var should follow down the chain, but it isn't working, so we'll do this.
      (setq magit-todos-updating t)
      (setq magit-todos-active-scan (funcall magit-todos-scanner
+                                            :callback #'magit-todos--insert-items
                                             :magit-status-buffer (current-buffer)
                                             :directory default-directory
                                             :depth magit-todos-depth)))
@@ -1079,10 +1085,10 @@ appropriate.  Custom regexps may also match column numbers or
 byte offsets in the appropriate numbered groups; see
 `make-magit-todos-item'.
 
-CALLBACK is a function which is called to parse the scanner
-process's buffer.  For grep-like scanners that output results in
-a format suitable for RESULTS-REGEXP, the default callback,
-`magit-todos--scan-callback', should be used.
+CALLBACK is called to process the process's output buffer.
+Normally the default should be used, which inserts items into the
+Magit status buffer which is passed as an argument to the scanner
+function.
 
 The macro defines the following:
 
@@ -1110,9 +1116,19 @@ It also adds the scanner to the customization variable
        (defcustom ,extra-args-var nil
          ,(format "Extra arguments passed to %s." name)
          :type '(repeat string))
-       (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth heading)
+
+       ;; NOTE: Both the macro and the macro-defined function have `callback' arguments.  Pay attention to unquoting.
+       ;; FIXME: That is confusing.
+
+       (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth heading sync callback)
          ,(format "Scan for to-dos with %s, then call `%s'.
-MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'.  HEADING is passed to `%s'."
+MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'.  HEADING is passed to `%s'.
+
+When SYNC is nil, the scanner process is returned, and CALLBACK
+is a function which is called by the process sentinel with one
+argument, a list of match items.
+
+When SYNC is non-nil, match items are returned."
                   name callback callback)
          (let* ((process-connection-type 'pipe)
                 (directory (f-relative directory default-directory))
@@ -1164,13 +1180,25 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
            (cl-loop for elt in-ref command
                     when (numberp elt)
                     do (setf elt (number-to-string elt)))
-           (magit-todos--async-start-process ,scan-fn-name
-             :command command
-             :finish-func (apply-partially ,callback
-                                           :magit-status-buffer magit-status-buffer :results-regexp results-regexp
-                                           :search-regexp-elisp search-regexp-elisp
-                                           :heading heading
-                                           :process)))) ; Process is appended to the list.
+           ;; Run command.
+           (if sync
+               ;; Synchronous: return matching items.
+               (with-temp-buffer
+                 (unless (= 0 (apply #'call-process (car command) nil (current-buffer) nil
+                                     (cdr command)))
+                   (user-error (concat (car command) " failed")))
+                 (magit-todos--buffer-items results-regexp))
+             ;; Async: return process.
+             (magit-todos--async-start-process ,scan-fn-name
+               :command command
+               ;; NOTE: This callback chain.
+               :finish-func (apply-partially ,callback
+                                             :callback callback
+                                             :magit-status-buffer magit-status-buffer
+                                             :results-regexp results-regexp
+                                             :search-regexp-elisp search-regexp-elisp
+                                             :heading heading
+                                             :process))))) ; Process is appended to the list.
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
