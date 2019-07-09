@@ -1215,8 +1215,11 @@ MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run
   ;; NOTE: This scanner implements the regexp *searching* in elisp rather than in the
   ;; external process because, unlike "git grep", "git diff" does not support PCRE.
   :test t
-  :command (list "git" "--no-pager" "diff" "--no-color" "-U0" "HEAD^")
-  :callback #'magit-todos--git-diff-callback)
+  :command (progn
+             ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
+             (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
+             (list "git" "--no-pager" "diff" "--no-color" "-U0" "HEAD^"))
+  :callback 'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
