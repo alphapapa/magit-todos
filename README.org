@@ -100,6 +100,16 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
 +  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
 
+*** Commands
+
++  =magit-todos-mode= :: Activate =magit-todos-mode=, which automatically inserts the to-do list in Magit status buffers.
++  =magit-todos-list= :: Display the to-do list in a separate buffer.  This also works outside of git repos.
+
+Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are not required, nor does this package depend on them; they are only used if present.
+
++  =helm-magit-todos= :: Display the to-do list with Helm.
++  =ivy-magit-todos= :: Display the to-do list with Ivy.
+
 *** Tips
 
 +  Customize settings in the =magit-todos= group.
@@ -117,6 +127,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 :END:
 
 *** 1.4-pre
+
+*Added*
++  Commands =helm-magit-todos= and =ivy-magit-todos=, which display items with Helm and Ivy.  (Note that Helm and Ivy are not required, nor does this package depend on them; they are only used if present.)
 
 *Updated*
 +  Use =magit-setup-buffer= instead of =magit-mode-setup=.
