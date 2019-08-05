@@ -126,7 +126,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC:      0
 :END:
 
-*** 1.4-pre
+*** 1.4
 
 *Added*
 +  Commands =helm-magit-todos= and =ivy-magit-todos=, which display items with Helm and Ivy.  (Note that Helm and Ivy are not required, nor does this package depend on them; they are only used if present.)
