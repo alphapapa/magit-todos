@@ -121,6 +121,13 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
      5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
 +  The ~magit-todos-list~ command also works outside of git repos.
 
+**** TRAMP
+:PROPERTIES:
+:CUSTOM_ID: TRAMP
+:END:
+
+=magit-todos= attempts to work in remote repositories accessed via TRAMP.  Note that if TRAMP can't find the scanner configured in =magit-todos-scanner=, you may need to use directory-local variables to either add the correct path to =tramp-remote-path= or choose a different scanner.
+
 ** Changelog
 :PROPERTIES:
 :TOC:      0
@@ -128,7 +135,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *** 1.5-pre
 
-Nothing new yet.
+*Added*
++  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
 
 *** 1.4.1
 

@@ -946,7 +946,7 @@ This is a copy of `async-start-process' that does not override
   (let* ((args (cdr command))
          (command (car command))
          (buf (generate-new-buffer (concat " *" name "*")))
-         (proc (apply #'start-process name buf command args)))
+         (proc (apply #'start-file-process name buf command args)))
     (with-current-buffer buf
       (set-process-query-on-exit-flag proc nil)
       (set (make-local-variable 'async-callback) finish-func)
@@ -971,11 +971,15 @@ if the process's buffer has already been deleted."
   ;; `rg' scanner buffer!  It's as if Emacs is mixing up the process buffers.  I really don't know
   ;; what's going on.  But maybe I can work around it by copying this function and checking whether
   ;; the process's buffer is alive.
-  (when (and (eq 'exit (process-status proc))
+  ;; NOTE: TRAMP processes seem to have the status `signal' instead of
+  ;; `exit'.  I can't find documentation as to why.
+  (when (and (memq (process-status proc) '(exit signal))
              (buffer-live-p (process-buffer proc)))
     (with-current-buffer (process-buffer proc)
       (let ((async-current-process proc))
-        (if (= 0 (process-exit-status proc))
+        ;; TRAMP processes seem to have the exit status 9 instead of
+        ;; 0.  I can't find documentation or code about it.
+        (if (memq (process-exit-status proc) '(0 9))
             (if async-callback-for-process
                 (if async-callback
                     (prog1
