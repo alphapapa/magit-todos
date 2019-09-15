@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 1.5-pre
-;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0") (memoize "1.1"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -75,6 +75,7 @@
 (require 'magit)
 (require 'pcre2el)
 (require 's)
+(require 'memoize)
 
 ;;;; Structs
 
@@ -1049,6 +1050,24 @@ if the process's buffer has already been deleted."
 
 ;;;; Scanners
 
+(defmemoize magit-todos--keywords-to-search-regexps (keywords suffix)
+  (let* ((search-regexp-elisp (rx-to-string
+                               `(or
+                                 ;; Org item
+                                 (seq bol (group (1+ "*"))
+                                      (1+ blank)
+                                      (group (or ,@keywords))
+                                      (1+ space)
+                                      (group (1+ not-newline)))
+                                 ;; Non-Org
+                                 (seq (or bol (1+ blank))
+                                      (group (or ,@keywords))
+                                      (regexp ,suffix)
+                                      (optional (1+ blank)
+                                                (group (1+ not-newline)))))))
+         (search-regexp-pcre (rxt-elisp-to-pcre search-regexp-elisp)))
+    (cons search-regexp-elisp search-regexp-pcre)))
+
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp
                                           (callback (function 'magit-todos--scan-callback)))
   "Define a `magit-todos' scanner named NAME.
@@ -1149,21 +1168,9 @@ When SYNC is non-nil, match items are returned."
                               (--map (s-split (rx (1+ space)) it 'omit-nulls)
                                      ,extra-args-var)))
                 (keywords magit-todos-keywords-list)
-                (search-regexp-elisp (rx-to-string
-                                      `(or
-                                        ;; Org item
-                                        (seq bol (group (1+ "*"))
-                                             (1+ blank)
-                                             (group (or ,@keywords))
-                                             (1+ space)
-                                             (group (1+ not-newline)))
-                                        ;; Non-Org
-                                        (seq (or bol (1+ blank))
-                                             (group (or ,@keywords))
-                                             (regexp ,magit-todos-keyword-suffix)
-                                             (optional (1+ blank)
-                                                       (group (1+ not-newline)))))))
-                (search-regexp-pcre (rxt-elisp-to-pcre search-regexp-elisp))
+                (search-regexps (magit-todos--keywords-to-search-regexps keywords magit-todos-keyword-suffix))
+                (search-regexp-elisp (car search-regexps))
+                (search-regexp-pcre (cdr search-regexps))
                 (results-regexp (or ,results-regexp
                                     (rx-to-string
                                      `(seq bol

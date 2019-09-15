@@ -65,13 +65,14 @@ If you installed from MELPA, you're done!
 
 Install these required packages:
 
--  =async=
--  =dash=
--  =f=
--  =hl-todo=
--  =magit=
--  =pcre2el=
--  =s=
+- =async=
+- =dash=
+- =f=
+- =hl-todo=
+- =magit=
+- =pcre2el=
+- =s=
+- =memoize=
 
 Then put this file in your =load-path=, and put this in your init file:
 
