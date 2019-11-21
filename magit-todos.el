@@ -1357,6 +1357,9 @@ the cache is not updated from this command."
 (declare-function ivy-read "ext:ivy")
 
 (with-eval-after-load 'ivy
+  (defvar ivy-magit-todos-history nil
+    "History for `ivy-magit-todos'.")
+
   (defun ivy-magit-todos ()
     "Display `magit-todos' items with Ivy.
 Note that this uses `magit-todos-items-cache' when a Magit status
@@ -1365,7 +1368,9 @@ the cache is not updated from this command."
     (interactive)
     (ivy-read "TODOs: " (magit-todos-candidates)
               :action (lambda (item)
-                        (magit-todos-jump-to-item :item (cdr item))))))
+                        (magit-todos-jump-to-item :item (cdr item)))
+              :history 'ivy-magit-todos-history
+              :caller 'ivy-magit-todos)))
 
 ;;;;; Support
 

@@ -137,6 +137,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Added*
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
++  Ivy history support.  (Thanks to [[https://github.com/leungbk][Brian Leung]].)
 
 *** 1.4.1
 
