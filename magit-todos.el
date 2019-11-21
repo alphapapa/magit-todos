@@ -1354,6 +1354,8 @@ the cache is not updated from this command."
     (interactive)
     (helm :sources '(helm-magit-todos-source))))
 
+(declare-function ivy-read "ext:ivy")
+
 (with-eval-after-load 'ivy
   (defun ivy-magit-todos ()
     "Display `magit-todos' items with Ivy.
