@@ -139,6 +139,11 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
 +  Ivy history support.  (Thanks to [[https://github.com/leungbk][Brian Leung]].)
 
+*** 1.4.2
+
+*Fixed*
++  Refreshing =magit-todos-list= buffer.  ([[https://github.com/alphapapa/magit-todos/issues/92][#92]].  Thanks to [[https://github.com/filalex77][Oleksii Filonenko]] and [[https://github.com/hlissner][Henrik Lissner]] for reporting.)
+
 *** 1.4.1
 
 *Fixed*

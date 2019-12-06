@@ -460,7 +460,8 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
 (defun magit-todos-list-refresh-buffer ()
   "Refresh the current `magit-todos-list-mode' buffer."
   (setq-local magit-todos-max-items (* magit-todos-max-items magit-todos-buffer-item-factor))
-  (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor))
+  (when (numberp magit-todos-auto-group-items)
+    (setq-local magit-todos-auto-group-items (* magit-todos-auto-group-items magit-todos-buffer-item-factor)))
   (magit-section-show (magit-insert-section (type magit-root-section)
                         (magit-insert-status-headers)
                         (magit-todos--insert-todos))))
