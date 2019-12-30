@@ -93,6 +93,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 
 *With point on to-do list heading:*
 +  @@html:<kbd>@@b@@html:</kbd>@@ :: Show branch (=git diff=) to-do list.
++  @@html:<kbd>@@B@@html:</kbd>@@ :: Set commit reference used in branch to-do list.
 
 *With point in to-do list:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: When configured for manual updates, manually update the to-do list.
@@ -139,6 +140,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
 +  Ivy history support.  (Thanks to [[https://github.com/leungbk][Brian Leung]].)
 +  Option =magit-todos-branch-list-merge-base-ref=.
++  Command =magit-todos-branch-list-set-commit=, bound to =B= with point in a to-do section.
 
 *Changed*
 +  Branch todo list now uses =git merge-base= to determine the ancestor commit to compare to =HEAD=.

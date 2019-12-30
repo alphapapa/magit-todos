@@ -122,6 +122,7 @@ magit-status buffer.")
     (define-key map "jT" #'magit-todos-jump-to-todos)
     (define-key map "jl" #'magit-todos-list)
     (define-key map "b" #'magit-todos-branch-list-toggle)
+    (define-key map "B" #'magit-todos-branch-list-set-commit)
     (define-key map (kbd "RET") #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
@@ -396,6 +397,12 @@ Only necessary when option `magit-todos-update' is nil."
   "Toggle branch diff to-do list in current Magit buffer."
   (interactive)
   (setq-local magit-todos-branch-list (not magit-todos-branch-list))
+  (magit-todos-update))
+
+(defun magit-todos-branch-list-set-commit (ref)
+  "Set commit ref used in branch to-do list."
+  (interactive (list (completing-read "Refname: " (magit-list-refnames))))
+  (setq-local magit-todos-branch-list-merge-base-ref ref)
   (magit-todos-update))
 
 (cl-defun magit-todos-jump-to-item (&key peek (item (oref (magit-current-section) value)))
@@ -677,7 +684,7 @@ This function should be called from inside a ‘magit-status’ buffer."
     (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
                                      :directory default-directory
                                      :depth magit-todos-depth
-                                     :heading "TODOs (branch)")))
+                                     :heading (format "TODOs (branched from %s)" magit-todos-branch-list-merge-base-ref))))
 
 (defun magit-todos--insert-items (magit-status-buffer items)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
