@@ -1263,7 +1263,7 @@ When SYNC is non-nil, match items are returned."
                  extra-args search-regexp-pcre directory))
 
 (magit-todos-defscanner "git grep"
-  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --help"))
+  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --magit-todos-testing-git-grep"))
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
                  (when depth

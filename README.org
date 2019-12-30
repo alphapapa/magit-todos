@@ -144,6 +144,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  Branch todo list now uses =git merge-base= to determine the ancestor commit to compare to =HEAD=.
 +  Enable list-wide key bindings on both headings and to-do items.
 
+*Fixed*
++  Don't use =--help= option when testing =git grep= command, because it can launch a Web browser on some configurations or platforms (see [[https://github.com/alphapapa/magit-todos/issues/43][#43]]).
+
 *Removed*
 +  Option =magit-todos-branch-list-commit-ref=, replaced by option =magit-todos-branch-list-merge-base-ref=.
 
