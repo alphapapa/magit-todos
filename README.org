@@ -131,6 +131,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Fixed*
 +  Don't use =--help= option when testing =git grep= command, because it can launch a Web browser on some configurations or platforms (see [[https://github.com/alphapapa/magit-todos/issues/43][#43]]).
 +  Caching when branch diff list is displayed.
++  Commands =magit-section-forward= / =backward= sometimes skipped sections (see [[https://github.com/alphapapa/magit-todos/issues/66][#66]]).
 
 *** 1.4.2
 
