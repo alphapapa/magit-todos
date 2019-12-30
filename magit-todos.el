@@ -725,7 +725,7 @@ This function should be called from inside a ‘magit-status’ buffer."
             ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
                            until (not (member this-section '(branch tags)))
                            do (magit-section-forward)))
-            ('bottom (goto-char (point-max)))
+            ('bottom (goto-char (oref (-last-item (oref magit-root-section children)) end)))
             (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
           ;; Insert section
           (let ((reminder (if magit-todos-update
