@@ -91,11 +91,9 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 *In Magit status buffer:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: Jump to the to-do list.  If the section is empty (e.g. when using manual updates), it will scan for items.
 
-*With point on to-do list heading:*
+*With point in to-do list:*
 +  @@html:<kbd>@@b@@html:</kbd>@@ :: Show branch (=git diff=) to-do list.
 +  @@html:<kbd>@@B@@html:</kbd>@@ :: Set commit reference used in branch to-do list.
-
-*With point in to-do list:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: When configured for manual updates, manually update the to-do list.
 +  @@html:<kbd>@@j l@@html:</kbd>@@ :: Open dedicated to-do list buffer.
 +  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
@@ -144,6 +142,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Changed*
 +  Branch todo list now uses =git merge-base= to determine the ancestor commit to compare to =HEAD=.
++  Enable list-wide key bindings on both headings and to-do items.
 
 *Removed*
 +  Option =magit-todos-branch-list-commit-ref=, replaced by option =magit-todos-branch-list-merge-base-ref=.

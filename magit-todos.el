@@ -128,7 +128,7 @@ magit-status buffer.")
   "Keymap for `magit-todos' top-level section.")
 
 (defvar magit-todos-item-section-map
-  (let ((map (make-sparse-keymap)))
+  (let ((map (copy-keymap magit-todos-section-map)))
     (define-key map [remap magit-visit-thing] #'magit-todos-jump-to-item)
     (define-key map [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
     map)
