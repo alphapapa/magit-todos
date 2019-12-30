@@ -128,7 +128,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *** 1.4.3-pre
 
-Nothing yet.
+*Fixed*
++  Don't use =--help= option when testing =git grep= command, because it can launch a Web browser on some configurations or platforms (see [[https://github.com/alphapapa/magit-todos/issues/43][#43]]).
 
 *** 1.4.2
 
