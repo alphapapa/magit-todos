@@ -327,8 +327,6 @@ used."
 
 (defcustom magit-todos-branch-list 'branch
   "Show branch diff to-do list.
-In the master branch, this shows whatever items are listed by
-\"git diff `magit-todos-branch-list-commit-ref'\".
 
 This can be toggled locally in Magit buffers with command
 `magit-todos-branch-list-toggle'."
@@ -336,8 +334,23 @@ This can be toggled locally in Magit buffers with command
                  (const :tag "In non-master branches" branch)
                  (const :tag "Always" t)))
 
-(defcustom magit-todos-branch-list-commit-ref '"HEAD^"
-  "Commit ref passed to \"git diff\" command used to make branch diff list."
+(defcustom magit-todos-branch-list-merge-base-ref "master"
+  "Commit ref passed to command \"git merge-base HEAD\".
+Determines the ancestor commit from which the current branch's
+todos should be searched for.  May be overridden in the case that
+a branch is branched off another branch rather than master.  For
+example, consider the following commit graph:
+
+---A1---A2---A3 (master)
+    \
+     B1---B2---B3 (topic)
+           \
+            C1---C2---C3 (topic2, HEAD)
+
+By default, the branch todo list would show todos from both the
+\"topic\" branch and the \"topic2\" branch.  To show only todos
+from the \"topic2\" branch, this option could be set to
+\"topic\"."
   :type 'string)
 
 ;;;; Commands
@@ -1264,7 +1277,11 @@ When SYNC is non-nil, match items are returned."
   :command (progn
              ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
              (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
-             (list "git" "--no-pager" "diff" "--no-color" "-U0" magit-todos-branch-list-commit-ref))
+             (list "git" "--no-pager" "diff" "--no-color" "-U0"
+                   (-> "git merge-base HEAD "
+                       (concat magit-todos-branch-list-merge-base-ref)
+                       shell-command-to-string
+                       string-trim)))
   :callback 'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"

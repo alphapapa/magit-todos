@@ -138,6 +138,13 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Added*
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
 +  Ivy history support.  (Thanks to [[https://github.com/leungbk][Brian Leung]].)
++  Option =magit-todos-branch-list-merge-base-ref=.
+
+*Changed*
++  Branch todo list now uses =git merge-base= to determine the ancestor commit to compare to =HEAD=.
+
+*Removed*
++  Option =magit-todos-branch-list-commit-ref=, replaced by option =magit-todos-branch-list-merge-base-ref=.
 
 *** 1.4.2
 
