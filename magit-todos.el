@@ -129,7 +129,7 @@ magit-status buffer.")
 
 (defvar magit-todos-item-section-map
   (let ((map (copy-keymap magit-todos-section-map)))
-    (define-key map [remap magit-visit-thing] #'magit-todos-jump-to-item)
+    (define-key map [remap magit-todos-list] #'magit-todos-jump-to-item)
     (define-key map [remap magit-diff-show-or-scroll-up] #'magit-todos-peek-at-item)
     map)
   "Keymap for `magit-todos' individual to-do item sections.
