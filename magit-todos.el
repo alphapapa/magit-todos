@@ -123,7 +123,7 @@ magit-status buffer.")
     (define-key map "jl" #'magit-todos-list)
     (define-key map "b" #'magit-todos-branch-list-toggle)
     (define-key map "B" #'magit-todos-branch-list-set-commit)
-    (define-key map (kbd "RET") #'magit-todos-list)
+    (define-key map [remap magit-visit-thing] #'magit-todos-list)
     map)
   "Keymap for `magit-todos' top-level section.")
 
