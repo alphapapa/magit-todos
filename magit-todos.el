@@ -579,7 +579,7 @@ Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESUL
                     (push item items)))
                 (cl-incf line-number)))))
         (let ((magit-todos-section-heading heading))
-          (magit-todos--insert-items magit-status-buffer items))))))
+          (magit-todos--insert-items magit-status-buffer items :branch-p t))))))
 
 (defun magit-todos--delete-section (condition)
   "Delete the section specified by CONDITION from the Magit status buffer.
@@ -666,8 +666,10 @@ This function should be called from inside a ‘magit-status’ buffer."
                                      :depth magit-todos-depth
                                      :heading "TODOs (branch)")))
 
-(defun magit-todos--insert-items (magit-status-buffer items)
-  "Insert to-do ITEMS into MAGIT-STATUS-BUFFER."
+(cl-defun magit-todos--insert-items (magit-status-buffer items &key branch-p)
+  "Insert to-do ITEMS into MAGIT-STATUS-BUFFER.
+If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
+`magit-todos-last-update-time', and `magit-todos-updating'."
   (declare (indent defun))
   ;; NOTE: This could be factored out into some kind of `magit-insert-section-async' macro if necessary.
   ;; MAYBE: Use `magit-insert-section-body'.
@@ -689,14 +691,16 @@ This function should be called from inside a ‘magit-status’ buffer."
     (when (buffer-live-p magit-status-buffer)
       ;; Don't try to select a killed status buffer
       (with-current-buffer magit-status-buffer
-        (when magit-todos-updating
-          (when (or (null magit-todos-update) ; Manual updates
-                    (integerp magit-todos-update)) ; Caching
-            (setq magit-todos-item-cache items)
-            (setq magit-todos-last-update-time (current-time)))
-          ;; HACK: I don't like setting this special var, but it works.  See other comment where
-          ;; it's set t.
-          (setq magit-todos-updating nil))
+        (unless branch-p
+          ;; Don't do any of this for the branch-diff scanner.
+          (when magit-todos-updating
+            (when (or (null magit-todos-update)      ; Manual updates
+                      (integerp magit-todos-update)) ; Caching
+              (setq magit-todos-item-cache items)
+              (setq magit-todos-last-update-time (current-time)))
+            ;; HACK: I don't like setting this special var, but it works.  See other comment where
+            ;; it's set t.
+            (setq magit-todos-updating nil)))
         (save-excursion
           ;; Insert items
           (goto-char (point-min))
