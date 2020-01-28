@@ -1437,28 +1437,40 @@ Used for e.g. Helm and Ivy."
 (require 'transient)
 
 (defclass magit-todos--transient-variable (transient-variable)
+  ;; TODO: The `transient-variable' class is not quite the right one
+  ;; to inherit from, because when it has a value, the next time the
+  ;; user tries to set it, it resets its value to nil instead of
+  ;; prompting for a value; IOW it treats nil specially.  Maybe we
+  ;; just need to redefine a method on this class, but I don't know
+  ;; which one.
+
+  ;; NOTE: It seems that's what's really needed is a `transient-custom'
+  ;; class that is designed to work with `defcustom's.
+
   ;; FIXME: We don't need :scope, but maybe a slot has to be defined.
   nil)
+
+(cl-defmethod transient-infix-set :around ((obj magit-todos--transient-variable) &optional value)
+  ;; Note that VALUE can be nil, so it must be optional.
+  (cl-call-next-method obj value))
 
 (cl-defmethod transient-init-value ((obj magit-todos--transient-variable))
   ;; NOTE: Not sure if necessary.
   "Initialize OBJ's value."
   (oset obj value (symbol-value (oref obj variable))))
 
-(cl-defmethod transient-infix-set ((obj magit-todos--transient-variable) value)
+(cl-defmethod transient-infix-set ((obj magit-todos--transient-variable) &optional value)
   "Set variable defined by OBJ to VALUE."
-  (let* ((variable (oref obj variable)))
-    (oset obj value value)
-    (set (make-local-variable (oref obj variable)) value)
-    (unless (or value transient--prefix)
-      (message "Unset %s" variable))))
+  ;; Note that VALUE can be nil, so it must be optional.
+  (oset obj value value)
+  (set (make-local-variable (oref obj variable)) value))
 
-(cl-defmethod transient-infix-value ((obj magit-todos--transient-variable))
-  ;; NOTE: Not sure if necessary.
-  "Return value of OBJ's value or variable."
-  (if (slot-boundp obj :value)
-      (oref obj value)
-    (symbol-value (oref obj variable))))
+;; (cl-defmethod transient-infix-value ((obj magit-todos--transient-variable))
+;;   ;; NOTE: Not sure if necessary.
+;;   "Return value of OBJ's value or variable."
+;;   (if (slot-boundp obj :value)
+;;       (oref obj value)
+;;     (symbol-value (oref obj variable))))
 
 (define-transient-command magit-todos-dispatch ()
   "Show Magit Todos dispatcher."
