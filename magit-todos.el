@@ -1433,11 +1433,17 @@ Used for e.g. Helm and Ivy."
 
 ;;;; Transient
 
+(require 'eieio)
 (require 'transient)
 
 (defclass magit-todos--transient-variable (transient-variable)
   ;; FIXME: We don't need :scope, but maybe a slot has to be defined.
   nil)
+
+(cl-defmethod transient-init-value ((obj magit-todos--transient-variable))
+  ;; NOTE: Not sure if necessary.
+  "Initialize OBJ's value."
+  (oset obj value (symbol-value (oref obj variable))))
 
 (cl-defmethod transient-infix-set ((obj magit-todos--transient-variable) value)
   "Set variable defined by OBJ to VALUE."
@@ -1446,6 +1452,13 @@ Used for e.g. Helm and Ivy."
     (set (make-local-variable (oref obj variable)) value)
     (unless (or value transient--prefix)
       (message "Unset %s" variable))))
+
+(cl-defmethod transient-infix-value ((obj magit-todos--transient-variable))
+  ;; NOTE: Not sure if necessary.
+  "Return value of OBJ's value or variable."
+  (if (slot-boundp obj :value)
+      (oref obj value)
+    (symbol-value (oref obj variable))))
 
 (define-transient-command magit-todos-dispatch ()
   "Show Magit Todos dispatcher."
