@@ -132,7 +132,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC:      0
 :END:
 
-*** 1.5-pre
+*** 1.5
 
 *Added*
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
