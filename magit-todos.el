@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 1.6-pre
-;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0") (transient))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -1429,6 +1429,51 @@ Used for e.g. Helm and Ivy."
                                 :depth magit-todos-depth)))
       (cl-loop for item in items
                collect (magit-todos-item-cons item)))))
+
+;;;; Transient
+
+(require 'transient)
+
+(defclass magit-todos--transient-variable (transient-variable)
+  ;; FIXME: We don't need :scope, but maybe a slot has to be defined.
+  nil)
+
+(cl-defmethod transient-infix-set ((obj magit-todos--transient-variable) value)
+  "Set variable defined by OBJ to VALUE."
+  (let ((variable (oref obj variable)))
+    (oset obj value value)
+    (set (make-local-variable (oref obj variable)) value)
+    (unless (or value transient--prefix)
+      (message "Unset %s" variable))))
+
+(define-transient-command magit-todos-dispatch ()
+  "Show Magit Todos dispatcher."
+  [["Settings"
+    ("u" magit-todos--transient-update)
+    ]]
+  )
+
+(define-infix-command magit-todos--transient-update ()
+  ;;  :description (lambda () (org-ql-view--format-transient-key-value "Title" org-ql-view-title))
+  :class 'magit-todos--transient-variable
+  :argument ""
+  :variable 'magit-todos-update
+  :prompt "Update: "
+  :reader (lambda (prompt _initial-input history)
+            ;; FIXME: Figure out how to integrate initial-input.
+            (magit-todos--transient-read-option-choices 'magit-todos-update)))
+
+(cl-defun magit-todos--transient-read-option-choices (option &optional (prompt (format "Set %s: " option)))
+  "Return setting for OPTION read with completion.
+OPTION should be a customization option of `choice' type.."
+  (let* ((choices (get option 'custom-type))
+         (table (--map (plist-get (cdr it) :tag) (cdr choices)))
+         (string (completing-read prompt table))
+         (choice (--first (equal string (plist-get (cdr it) :tag))
+                          (cdr choices))))
+    (pcase (car choice)
+      ('const (-last-item choice))
+      ('integer (read-number "Number: ")))))
 
 ;;;; Footer
 
