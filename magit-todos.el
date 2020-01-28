@@ -352,7 +352,8 @@ By default, the branch todo list would show todos from both the
 \"topic\" branch and the \"topic2\" branch.  To show only todos
 from the \"topic2\" branch, this option could be set to
 \"topic\"."
-  :type 'string)
+  :type '(choice (const :tag "master" "master")
+                 (string :tag "Ref")))
 
 ;;;; Commands
 
@@ -1440,7 +1441,7 @@ Used for e.g. Helm and Ivy."
 
 (cl-defmethod transient-infix-set ((obj magit-todos--transient-variable) value)
   "Set variable defined by OBJ to VALUE."
-  (let ((variable (oref obj variable)))
+  (let* ((variable (oref obj variable)))
     (oset obj value value)
     (set (make-local-variable (oref obj variable)) value)
     (unless (or value transient--prefix)
@@ -1449,31 +1450,88 @@ Used for e.g. Helm and Ivy."
 (define-transient-command magit-todos-dispatch ()
   "Show Magit Todos dispatcher."
   [["Settings"
+    ("d" magit-todos--transient-depth)
     ("u" magit-todos--transient-update)
+    ("B" magit-todos--transient-branch-list-merge-base-ref)
     ]]
   )
 
+(define-infix-command magit-todos--transient-branch-list-merge-base-ref ()
+  :description (lambda ()
+                 (concat "Branch-list merge-base ref: "
+                         (magit-todos--transient-option-current-tag 'magit-todos-branch-list-merge-base-ref)))
+  :class 'magit-todos--transient-variable
+  :argument ""
+  :variable 'magit-todos-branch-list-merge-base-ref
+  :prompt "Branch-List merge-base ref: "
+  :reader (lambda (_prompt _initial-input _history)
+            ;; FIXME: Figure out how to integrate initial-input.
+            (magit-todos--transient-read-option-choices 'magit-todos-branch-list-merge-base-ref
+                                                        :table (magit-list-refnames))))
+
+(define-infix-command magit-todos--transient-depth ()
+  :description (lambda () (concat "Depth: " (magit-todos--transient-option-current-tag 'magit-todos-depth)))
+  :class 'magit-todos--transient-variable
+  :argument ""
+  :variable 'magit-todos-depth
+  :prompt "Depth: "
+  :reader (lambda (_prompt _initial-input _history)
+            ;; FIXME: Figure out how to integrate initial-input.
+            (magit-todos--transient-read-option-choices 'magit-todos-depth)))
+
 (define-infix-command magit-todos--transient-update ()
-  ;;  :description (lambda () (org-ql-view--format-transient-key-value "Title" org-ql-view-title))
+  :description (lambda () (concat "Update: " (magit-todos--transient-option-current-tag 'magit-todos-update)))
   :class 'magit-todos--transient-variable
   :argument ""
   :variable 'magit-todos-update
   :prompt "Update: "
-  :reader (lambda (prompt _initial-input history)
+  :reader (lambda (_prompt _initial-input _history)
             ;; FIXME: Figure out how to integrate initial-input.
             (magit-todos--transient-read-option-choices 'magit-todos-update)))
 
-(cl-defun magit-todos--transient-read-option-choices (option &optional (prompt (format "Set %s: " option)))
+(cl-defun magit-todos--transient-read-option-choices
+    (option &key table
+            (prompt (format "Set %s: " option)))
   "Return setting for OPTION read with completion.
-OPTION should be a customization option of `choice' type.."
-  (let* ((choices (get option 'custom-type))
-         (table (--map (plist-get (cdr it) :tag) (cdr choices)))
-         (string (completing-read prompt table))
-         (choice (--first (equal string (plist-get (cdr it) :tag))
-                          (cdr choices))))
-    (pcase (car choice)
-      ('const (-last-item choice))
-      ('integer (read-number "Number: ")))))
+OPTION should be a customization option of `choice' type."
+  (let* ((custom-type (get option 'custom-type))
+         (table (or table (--map (plist-get (cdr it) :tag) (cdr custom-type))))
+         (choice (completing-read prompt table))
+         (choice-type (type-of choice))
+         (matching-type (pcase-exhaustive custom-type
+                          ((pred listp)
+                           (or
+                            ;; First const matching value.
+                            (--first (equal choice (plist-get (cdr it) :tag))
+                                     (cdr custom-type))
+                            ;; First choice matching type.
+                            (--first (eq choice-type (car it))
+                                     (cdr custom-type))))
+                          (_ choice))))
+    (pcase-exhaustive custom-type
+      (`(choice . ,_) (pcase-exhaustive (car matching-type)
+                        ('const (-last-item matching-type))
+                        ('integer (read-number "Number: "))
+                        ('string choice)))
+      ((or 'string 'integer) choice))))
+
+(defun magit-todos--transient-option-current-tag (option)
+  "Return description tag for customization OPTION's current value."
+  (let* ((custom-type (get option 'custom-type))
+         (value (symbol-value option))
+         (value-type (type-of value)))
+    (pcase-exhaustive custom-type
+      (`(choice . ,_)
+       (or (--when-let (--first (and (eq 'const (car it))
+                                     (equal value (-last-item it)))
+                                (cdr custom-type))
+             ;; First const matching value.
+             (plist-get (cdr it) :tag))
+           (--when-let (--first (eq value-type (car it))
+                                (cdr custom-type))
+             ;; First choice matching type.
+             (format "%s (%s)" (plist-get (cdr it) :tag) value))))
+      (_ value))))
 
 ;;;; Footer
 
