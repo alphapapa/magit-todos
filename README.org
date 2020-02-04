@@ -132,6 +132,11 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC:      0
 :END:
 
+*** 1.5.1-pre
+
+*Fixes*
++  Add insertion function to end of =magit-status-sections-hook=.
+
 *** 1.5
 
 *Added*

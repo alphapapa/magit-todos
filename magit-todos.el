@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.5
+;; Version: 1.5.1-pre
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -370,7 +370,7 @@ from the \"topic2\" branch, this option could be set to
           (_ (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")))
         (magit-add-section-hook 'magit-status-sections-hook
                                 #'magit-todos--insert-todos
-                                'magit-insert-staged-changes
+                                nil
                                 'append)
         (add-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook 'append))
     ;; Disable mode
