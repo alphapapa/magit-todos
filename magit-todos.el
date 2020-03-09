@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.5.1
+;; Version: 1.5.2
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -556,7 +556,7 @@ Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESUL
     (nreverse items)))
 
 (cl-defun magit-todos--git-diff-callback (&key magit-status-buffer results-regexp search-regexp-elisp process heading
-                                               &allow-other-keys)
+                                               exclude-globs &allow-other-keys)
   "Callback for git diff scanner output."
   ;; NOTE: Doesn't handle newlines in filenames or diff.mnemonicPrefix.
   (cl-macrolet ((next-diff () `(re-search-forward (rx bol "diff --git ") nil t))
@@ -580,24 +580,26 @@ Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESUL
                                   (point-max))))
     (with-current-buffer (process-buffer process)
       (goto-char (point-min))
-      (let (items filename file-end hunk-end line-number)
+      (let ((glob-regexps (mapcar #'wildcard-to-regexp exclude-globs))
+            items filename file-end hunk-end line-number)
         (while (next-diff)
           (while (setf filename (next-filename))
-            (setf file-end (file-end))
-            (while (setf line-number (next-hunk-line-number))
-              (setf hunk-end (hunk-end))
-              (while (re-search-forward (rx bol "+") hunk-end t)
-                ;; Since "git diff-index" doesn't accept PCREs to its "-G" option, we have to test the search regexp ourselves.
-                (when (re-search-forward search-regexp-elisp (line-end-position) t)
-                  (when-let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
-                              (item (with-temp-buffer
-                                      ;; NOTE: We fake grep output by inserting the filename, line number, position, etc.
-                                      ;; This lets us use the same results regexp that's used for grep-like output.
-                                      (save-excursion
-                                        (insert filename ":" (number-to-string line-number) ":0: " line))
-                                      (magit-todos--line-item results-regexp filename))))
-                    (push item items)))
-                (cl-incf line-number)))))
+            (unless (--some? (string-match it filename) glob-regexps)
+              (setf file-end (file-end))
+              (while (setf line-number (next-hunk-line-number))
+                (setf hunk-end (hunk-end))
+                (while (re-search-forward (rx bol "+") hunk-end t)
+                  ;; Since "git diff-index" doesn't accept PCREs to its "-G" option, we have to test the search regexp ourselves.
+                  (when (re-search-forward search-regexp-elisp (line-end-position) t)
+                    (when-let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
+                                (item (with-temp-buffer
+                                        ;; NOTE: We fake grep output by inserting the filename, line number, position, etc.
+                                        ;; This lets us use the same results regexp that's used for grep-like output.
+                                        (save-excursion
+                                          (insert filename ":" (number-to-string line-number) ":0: " line))
+                                        (magit-todos--line-item results-regexp filename))))
+                      (push item items)))
+                  (cl-incf line-number))))))
         (let ((magit-todos-section-heading heading))
           (magit-todos--insert-items magit-status-buffer items :branch-p t))))))
 
@@ -1236,6 +1238,7 @@ When SYNC is non-nil, match items are returned."
                                              :results-regexp results-regexp
                                              :search-regexp-elisp search-regexp-elisp
                                              :heading heading
+                                             :exclude-globs magit-todos-exclude-globs
                                              :process))))) ; Process is appended to the list.
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
