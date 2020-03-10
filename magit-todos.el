@@ -117,6 +117,11 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
 
+;; FIXME: Jumping binds.  In `magit-status-mode-map' now, "j" is bound
+;; to `magit-status-jump', which is a Transient command; it's no
+;; longer bound to a prefix map.  There doesn't seem to be a way to
+;; add binds to that Transient command's body.
+
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
