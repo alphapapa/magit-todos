@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 1.5.2
-;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0") (transient "0.1.0"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -73,6 +73,7 @@
 (require 'f)
 (require 'hl-todo)
 (require 'magit)
+(require 'transient)
 (require 'pcre2el)
 (require 's)
 
@@ -117,10 +118,20 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
 
-;; FIXME: Jumping binds.  In `magit-status-mode-map' now, "j" is bound
-;; to `magit-status-jump', which is a Transient command; it's no
-;; longer bound to a prefix map.  There doesn't seem to be a way to
-;; add binds to that Transient command's body.
+(transient-append-suffix
+  #'magit-status-jump
+  ;; Add this as a new group on the right.
+  ;;
+  ;; v this is the 0 in '(0 -1)
+  ;; Jump to
+  ;;               v this is the -1 in '(0 -1)
+  ;;  z Stashes    fu Unpulled from upstream    T Todos
+  ;;  n Untracked  fp Unpulled from pushremote  l List todos
+  ;;  ...
+  ;;
+  '(0 -1)
+  '[("T" "Todos" magit-todos-jump-to-todos)
+    ("l" "List todos" magit-todos-list)])
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
