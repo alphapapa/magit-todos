@@ -780,7 +780,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (heading (concat indent heading))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
@@ -842,7 +842,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
                                          magit-insert-section--parent))
