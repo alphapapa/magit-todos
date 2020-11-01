@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.5.2
+;; Version: 1.5.3
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -116,6 +116,11 @@ This should be set automatically by customizing
   "The current scan's process.
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
+
+;; FIXME: Jumping binds.  In `magit-status-mode-map' now, "j" is bound
+;; to `magit-status-jump', which is a Transient command; it's no
+;; longer bound to a prefix map.  There doesn't seem to be a way to
+;; add binds to that Transient command's body.
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
@@ -775,7 +780,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (heading (concat indent heading))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
@@ -837,7 +842,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
                                          magit-insert-section--parent))
