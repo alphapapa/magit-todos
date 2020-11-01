@@ -359,7 +359,7 @@ from the \"topic2\" branch, this option could be set to
 \"topic\"."
   :type 'string)
 
-(defcustom magit-todos-show-submodule-notes t
+(defcustom magit-todos-submodule-list nil
   "Show submodule to-do list."
   :type 'boolean)
 
@@ -1276,7 +1276,7 @@ When SYNC is non-nil, match items are returned."
                  (when magit-todos-exclude-globs
                    (--map (list "--glob" (concat "!" it))
                           magit-todos-exclude-globs))
-                 (unless magit-todos-show-submodule-notes
+                 (unless magit-todos-submodule-list
                    (--map (list "--glob" (concat "!" it))
                           (magit-list-module-paths)))
                  extra-args search-regexp-pcre directory))
@@ -1295,7 +1295,7 @@ When SYNC is non-nil, match items are returned."
                  (when magit-todos-exclude-globs
                    (--map (concat ":!" it)
                           magit-todos-exclude-globs))
-                 (unless magit-todos-show-submodule-notes
+                 (unless magit-todos-submodule-list
                    (--map (list "--glob" (concat "!" it))
                           (magit-list-module-paths)))))
 
@@ -1354,7 +1354,7 @@ When SYNC is non-nil, match items are returned."
                                  (--map (list "-iname" it)
                                         magit-todos-exclude-globs)
                                  ")" "-prune"))
-                         (unless magit-todos-show-submodule-notes
+                         (unless magit-todos-submodule-list
                            (list "-o" "("
                                  (--map (list "-iname" it)
                                         (magit-list-module-paths))
