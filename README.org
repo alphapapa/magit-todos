@@ -133,6 +133,10 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC:      0
 :END:
 
+*** 1.6-pre
+
+Nothing new yet.
+
 *** 1.5.3
 
 *Fixes*
