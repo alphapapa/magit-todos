@@ -12,6 +12,7 @@ This package displays keyword entries from source code comments and Org files in
 :PROPERTIES:
 :TOC:      siblings
 :END:
+
     -  [[#screenshots][Screenshots]]
     -  [[#installation][Installation]]
     -  [[#usage][Usage]]
@@ -131,6 +132,11 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :PROPERTIES:
 :TOC:      0
 :END:
+
+*** 1.5.3
+
+*Fixes*
++  Remove face from indentation.  (Thanks to [[https://github.com/Alexander-Miller][Alexander Miller]].)
 
 *** 1.5.2
 

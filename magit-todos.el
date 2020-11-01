@@ -4,7 +4,7 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
-;; Version: 1.5.2
+;; Version: 1.5.3
 ;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
 ;; Keywords: magit, vc
 
@@ -780,7 +780,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (heading (concat indent heading))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
@@ -842,7 +842,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (s-repeat (* 2 depth) " "))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
                                          magit-insert-section--parent))
