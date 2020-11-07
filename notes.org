@@ -2,6 +2,10 @@
 
 * Ideas
 
+** TODO [#B] Don't indent items when no groups
+
+When there are no groups, items should not be indented.  That way they'll match the appearance of other sections.
+
 ** MAYBE Convert glob symbols to strings
 
 It's a bit awkward and confusing for users who use ~add-dir-local-variable~ to have to remember to type quotation marks for the glob value when setting ~magit-todos-exclude-globs~.  We could convert symbols to strings when building commands, so users wouldn't have to remember this.
