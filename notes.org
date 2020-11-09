@@ -96,3 +96,7 @@ Should probably use =--glob=:
 *** TODO git-grep
 
 *** TODO find-grep
+
+** TODO [#B] Search extra directories
+
+[2020-11-09 Mon 01:59]  e.g. when I store a notes file in a worktree directory, it doesn't get scanned.
