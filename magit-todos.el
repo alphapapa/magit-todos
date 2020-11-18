@@ -363,6 +363,12 @@ from the \"topic2\" branch, this option could be set to
   "Show submodule to-do list."
   :type 'boolean)
 
+(defcustom magit-todos-trim-filename-fn nil
+  "Apply function to file name to change its representation.
+Function takes relative file path as an argument and must return string."
+  :type '(choice (const :tag "Don't trim" nil)
+                 (function :tag "Function" f-filename)))
+
 ;;;; Commands
 
 ;;;###autoload
@@ -857,6 +863,8 @@ sections."
                       (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
                              (string (--> (concat indent
                                                   (when magit-todos-show-filenames
+                                                    (when magit-todos-trim-filename-fn
+                                                      (setf filename (funcall magit-todos-trim-filename-fn filename)))
                                                     (concat filename " "))
                                                   (funcall (if (s-suffix? ".org" filename)
                                                                #'magit-todos--format-org
