@@ -120,6 +120,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
      4.  Input the glob value, like ~("*.html")~ to exclude HTML files.  (Note that the input is read as a lisp value, and this variable must be a list of strings.)
      5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
 +  The ~magit-todos-list~ command also works outside of git repos.
++  Set ~magit-todos-keyword-suffix~ to custom how to find ~TODO~ keyword. default value is "\\(?:([^)]+)\\)?:". it find like ~TODO:~
+   ~(setq magit-todos-keyword-suffix "")~ to find all ~TODO~
 
 **** TRAMP
 :PROPERTIES:
