@@ -323,7 +323,7 @@ used."
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section")))
 
-(defcustom magit-todos-exclude-globs nil
+(defcustom magit-todos-exclude-globs '(".git/")
   "Glob patterns to exclude from searches."
   :type '(repeat string))
 
