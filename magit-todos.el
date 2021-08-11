@@ -5,7 +5,7 @@
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: http://github.com/alphapapa/magit-todos
 ;; Version: 1.6-pre
-;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0"))
+;; Package-Requires: ((emacs "25.2") (async "1.9.2") (dash "2.13.0") (f "0.17.2") (hl-todo "1.9.0") (magit "2.13.0") (pcre2el "1.8") (s "1.12.0") (transient "0.2.0"))
 ;; Keywords: magit, vc
 
 ;;; Commentary:
@@ -73,6 +73,7 @@
 (require 'f)
 (require 'hl-todo)
 (require 'magit)
+(require 'transient)
 (require 'pcre2el)
 (require 's)
 
@@ -116,11 +117,6 @@ This should be set automatically by customizing
   "The current scan's process.
 Used to avoid running multiple simultaneous scans for a
 magit-status buffer.")
-
-;; FIXME: Jumping binds.  In `magit-status-mode-map' now, "j" is bound
-;; to `magit-status-jump', which is a Transient command; it's no
-;; longer bound to a prefix map.  There doesn't seem to be a way to
-;; add binds to that Transient command's body.
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
@@ -373,18 +369,16 @@ from the \"topic2\" branch, this option could be set to
   :global t
   (if magit-todos-mode
       (progn
-        (pcase (lookup-key magit-status-mode-map "jT")
-          ('nil (define-key magit-status-mode-map "jT" #'magit-todos-jump-to-todos))
-          ('magit-todos-jump-to-todos nil)
-          (_ (message "magit-todos: Not overriding bind of \"jT\" in `magit-status-mode-map'.")))
+        (transient-append-suffix #'magit-status-jump
+          '(0 -1) '[("T" "Todos" magit-todos-jump-to-todos)
+                    ("l" "List todos" magit-todos-list)])
         (magit-add-section-hook 'magit-status-sections-hook
                                 #'magit-todos--insert-todos
                                 nil
                                 'append)
         (add-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook 'append))
     ;; Disable mode
-    (when (equal (lookup-key magit-status-mode-map "jT") #'magit-todos-jump-to-todos)
-      (define-key magit-status-mode-map "jT" nil))
+    (transient-remove-suffix #'magit-status-jump '(0 -1))
     (remove-hook 'magit-status-sections-hook #'magit-todos--insert-todos)
     (remove-hook 'magit-status-mode-hook #'magit-todos--add-to-status-buffer-kill-hook)))
 

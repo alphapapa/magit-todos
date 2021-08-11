@@ -138,6 +138,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Added*
 +  Option =magit-todos-submodule-list= controls whether to-dos in submodules are displayed (default: off).  (Thanks to [[https://github.com/matsievskiysv][Matsievskiy S.V.]])
 
+*Internal*
++  Define jumper keys using a Transient suffix.
+
 *** 1.5.3
 
 *Fixes*
