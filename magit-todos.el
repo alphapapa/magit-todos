@@ -466,7 +466,11 @@ With prefix, prompt for repository."
 ;;;###autoload
 (defun magit-todos-list-internal (directory)
   "Open buffer showing to-do list of repository at DIRECTORY."
-  (magit--tramp-asserts directory)
+  (if (fboundp 'magit--tramp-asserts)
+      (magit--tramp-asserts directory)
+    (when (file-remote-p directory)
+      (magit-git-version-assert)))
+
   (let ((default-directory directory))
     (magit-setup-buffer #'magit-todos-list-mode)))
 
