@@ -139,6 +139,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Internal*
 +  Define jumper keys using a Transient suffix.
++  Use new git-testing function in Magit for remote directories.  ([[https://github.com/alphapapa/magit-todos/pull/126][#126]].  Thanks to [[https://github.com/maxhollmann][Max Hollmann]].)
 
 *** 1.5.3
 
