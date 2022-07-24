@@ -556,7 +556,8 @@ Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESUL
                       ;; FIXME: This may raise multiple warnings per file.
                       (error (if (string= "Stack overflow in regexp matcher" (error-message-string err))
                                  (let ((filename (buffer-substring (point) (1- (re-search-forward ":")))))
-                                   (display-warning 'magit-todos (concat "File has lines too long for Emacs to search.  Consider excluding it from scans: " filename)))
+                                   (display-warning 'magit-todos (concat "File has lines too long for Emacs to search.  Consider excluding it from scans: " filename))
+                                   nil)
                                (signal (car err) (cdr err)))))
           (push it items))
         (forward-line 1)))
