@@ -64,7 +64,6 @@
 ;;;; Requirements
 
 (require 'cl-lib)
-(require 'org)
 (require 'grep)
 (require 'seq)
 
@@ -1044,6 +1043,7 @@ if the process's buffer has already been deleted."
 
 (defun magit-todos--format-org (item)
   "Return ITEM formatted as from an Org file."
+  (require 'org)
   (magit-todos--fontify-like-in-org-mode
    (concat (magit-todos-item-org-level item) " "
            (magit-todos-item-keyword item) " "
