@@ -407,6 +407,7 @@ Only necessary when option `magit-todos-update' is nil."
   (setq-local magit-todos-branch-list-merge-base-ref ref)
   (magit-todos-update))
 
+(declare-function org-show-entry "org")
 (cl-defun magit-todos-jump-to-item (&key peek (item (oref (magit-current-section) value)))
   "Show current item.
 If PEEK is non-nil, keep focus in status buffer window."
@@ -1386,6 +1387,7 @@ When SYNC is non-nil, match items are returned."
 ;; Helm or Ivy to be installed; it is only called after one of them is loaded.
 
 (declare-function helm-make-source "ext:helm-source")
+(declare-function helm "ext:helm")
 
 (with-eval-after-load 'helm
   (defvar helm-magit-todos-source
