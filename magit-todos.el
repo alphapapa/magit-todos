@@ -85,7 +85,8 @@
 
 (defvar magit-todos-keywords-list nil
   "List of to-do keywords.
-Set automatically by `magit-todos-keywords' customization.")
+Set automatically from `magit-todos-keywords' and
+  `magit-todos-ignored-keywords' before building the search regex.")
 
 (defvar magit-todos-grep-result-regexp nil
   "Regular expression for grep results.
@@ -226,19 +227,7 @@ Note: the suffix applies only to non-Org files."
 
 (defcustom magit-todos-ignored-keywords '("NOTE" "DONE")
   "Ignored keywords.  Automatically removed from `magit-todos-keywords'."
-  :type '(repeat string)
-  :set (lambda (option value)
-         (set-default option value)
-         (when (boundp 'magit-todos-keywords)
-           ;; Avoid setting `magit-todos-keywords' before it's defined.
-
-           ;; HACK: Testing with `fboundp' is the only way I have been able to find that fixes this
-           ;; problem.  I tried using ":set-after '(magit-todos-ignored-keywords)" on
-           ;; `magit-todos-keywords', but it had no effect.  I looked in the manual, which seems to
-           ;; suggest that using ":initialize 'custom-initialize-safe-set" might fix it--but that
-           ;; function is no longer to be found in the Emacs source tree.  It was committed in 2005,
-           ;; and now it's gone, but the manual still mentions it. ???
-           (custom-reevaluate-setting 'magit-todos-keywords))))
+  :type '(repeat string))
 
 (defcustom magit-todos-keywords 'hl-todo-keyword-faces
   "To-do keywords to display in Magit status buffer.
@@ -252,14 +241,7 @@ regular expression."
                  (variable :tag "List variable"))
   :set (lambda (option value)
          (set-default option value)
-         (let ((keywords (cl-typecase value
-                           (null (user-error "Please add some keywords"))
-                           (symbol (if (and (consp (symbol-value value))
-                                            (consp (car (symbol-value value))))
-                                       (mapcar #'car (symbol-value value))
-                                     (symbol-value value)))
-                           (list value))))
-           (setq magit-todos-keywords-list (seq-difference keywords magit-todos-ignored-keywords)))))
+         (when (null value) (user-error "Please add some keywords"))))
 
 (defcustom magit-todos-max-items 10
   "Automatically collapse the section if there are more than this many items."
@@ -494,6 +476,16 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
                         (magit-todos--insert-todos))))
 
 ;;;; Functions
+
+(defun magit-todos--compile-keywords-list ()
+  "Evaluate keywords setting and remove ignored keywords from the lot."
+  (let ((keywords (cl-typecase magit-todos-keywords
+                    (symbol (if (and (consp (symbol-value magit-todos-keywords))
+                                     (consp (car (symbol-value magit-todos-keywords))))
+                                (mapcar #'car (symbol-value magit-todos-keywords))
+                              (symbol-value magit-todos-keywords)))
+                    (list magit-todos-keywords))))
+    (setq magit-todos-keywords-list (seq-difference keywords magit-todos-ignored-keywords))))
 
 (defun magit-todos--coalesce-groups (groups)
   "Return GROUPS, coalescing any groups with `equal' keys.
@@ -1178,6 +1170,7 @@ argument, a list of match items.
 
 When SYNC is non-nil, match items are returned."
                   name callback callback)
+         (magit-todos--compile-keywords-list)
          (let* ((process-connection-type 'pipe)
                 (directory (f-relative directory default-directory))
                 (extra-args (when ,extra-args-var
