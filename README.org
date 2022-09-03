@@ -139,6 +139,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Fixed*
 
 +  Enforce word boundary after keyword + suffix. (#135)
++  Enforce word boundary instead of whitespace before keywords. (#124)
 
 *Changed*
 +  Option =magit-todos-exclude-globs= now excludes the `.git/` directory by default.  (Thanks to [[https://github.com/Amorymeltzer][Amorymeltzer]].)
