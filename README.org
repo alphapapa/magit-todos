@@ -136,6 +136,10 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Added*
 +  Option =magit-todos-submodule-list= controls whether to-dos in submodules are displayed (default: off).  (Thanks to [[https://github.com/matsievskiysv][Matsievskiy S.V.]])
 
+*Fixed*
+
++  Enforce word boundary after keyword + suffix. (#135)
+
 *Changed*
 +  Option =magit-todos-exclude-globs= now excludes the `.git/` directory by default.  (Thanks to [[https://github.com/Amorymeltzer][Amorymeltzer]].)
 +  Library ~org~ is no longer loaded automatically, but only when needed.  (This can reduce load time, especially if the user's Org configuration is complex.)  ([[https://github.com/alphapapa/magit-todos/issues/120][#120]].  Thanks to [[https://github.com/meedstrom][Martin Edström]] and [[https://github.com/jsigman][Johnny Sigman]] for suggesting.)
