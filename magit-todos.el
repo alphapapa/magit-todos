@@ -1198,7 +1198,7 @@ When SYNC is non-nil, match items are returned."
                                              (regexp ,magit-todos-keyword-suffix)
                                              (optional (1+ blank)
                                                        (group (1+ not-newline)))))))
-                (search-regexp-pcre (rxt-elisp-to-pcre search-regexp-elisp))
+                (search-regexp-pcre (s-replace "\\" "\\\\" (rxt-elisp-to-pcre search-regexp-elisp)))
                 (results-regexp (or ,results-regexp
                                     (rx-to-string
                                      `(seq bol
