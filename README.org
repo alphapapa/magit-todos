@@ -140,6 +140,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  Option =magit-todos-exclude-globs= now excludes the `.git/` directory by default.  (Thanks to [[https://github.com/Amorymeltzer][Amorymeltzer]].)
 +  Library ~org~ is no longer loaded automatically, but only when needed.  (This can reduce load time, especially if the user's Org configuration is complex.)  ([[https://github.com/alphapapa/magit-todos/issues/120][#120]].  Thanks to [[https://github.com/meedstrom][Martin Edström]] and [[https://github.com/jsigman][Johnny Sigman]] for suggesting.)
 
+*Fixed*
++ Regexp overflow error for very long lines.  ([[https://github.com/alphapapa/magit-todos/pull/131][#131]].  Thanks to [[https://github.com/LaurenceWarne][Laurence Warne]].)
+
 *Internal*
 +  Define jumper keys using a Transient suffix.
 +  Use new git-testing function in Magit for remote directories.  ([[https://github.com/alphapapa/magit-todos/pull/126][#126]].  Thanks to [[https://github.com/maxhollmann][Max Hollmann]].)
