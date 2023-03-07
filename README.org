@@ -136,6 +136,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Added*
 +  Option =magit-todos-submodule-list= controls whether to-dos in submodules are displayed (default: off).  (Thanks to [[https://github.com/matsievskiysv][Matsievskiy S.V.]])
 +  Option ~magit-todos-insert-after~, which replaces ~magit-todos-insert-at~.  (The new option is more flexible, and it is automatically set from the old one's value.)
++  Option ~magit-todos-filename-filter~, which can be used to shorten filenames.  (Thanks to [[https://github.com/matsievskiysv][Matsievskiy S.V.]])
 
 *Changed*
 +  Option =magit-todos-exclude-globs= now excludes the `.git/` directory by default.  (Thanks to [[https://github.com/Amorymeltzer][Amorymeltzer]].)
