@@ -142,6 +142,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Fixed*
 + Regexp overflow error for very long lines.  ([[https://github.com/alphapapa/magit-todos/pull/131][#131]].  Thanks to [[https://github.com/LaurenceWarne][Laurence Warne]].)
++ Option ~magit-todos-group-by~ respects buffer- and directory-local settings.
 
 *Internal*
 +  Define jumper keys using a Transient suffix.

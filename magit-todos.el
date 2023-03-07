@@ -707,13 +707,6 @@ If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
     (message "`magit-todos--insert-items-callback': Callback called for deleted buffer"))
   (let* ((items (magit-todos--sort items))
          (num-items (length items))
-         (group-fns (pcase magit-todos-auto-group-items
-                      ('never nil)
-                      ('always magit-todos-group-by)
-                      ((pred integerp) (when (> num-items magit-todos-auto-group-items)
-                                         magit-todos-group-by))
-                      (_ (error "Invalid value for magit-todos-auto-group-items"))))
-         (magit-todos-show-filenames (not (member 'magit-todos-item-filename group-fns)))
          (magit-section-show-child-count t)
          ;; HACK: "For internal use only."  But this makes collapsing the new section work!
          (magit-insert-section--parent magit-root-section)
@@ -742,10 +735,17 @@ If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
             ('bottom (goto-char (oref (-last-item (oref magit-root-section children)) end)))
             (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
           ;; Insert section
-          (let ((reminder (if magit-todos-update
-                              "" ; Automatic updates: no reminder
-                            ;; Manual updates: remind user
-                            " (update manually)")))
+          (let* ((group-fns (pcase magit-todos-auto-group-items
+                              ('never nil)
+                              ('always magit-todos-group-by)
+                              ((pred integerp) (when (> num-items magit-todos-auto-group-items)
+                                                 magit-todos-group-by))
+                              (_ (error "Invalid value for magit-todos-auto-group-items"))))
+                 (magit-todos-show-filenames (not (member 'magit-todos-item-filename group-fns)))
+                 (reminder (if magit-todos-update
+                               ""      ; Automatic updates: no reminder
+                             ;; Manual updates: remind user
+                             " (update manually)")))
             (if (not items)
                 (unless magit-todos-update
                   ;; Manual updates: Insert section to remind user
