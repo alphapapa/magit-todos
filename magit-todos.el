@@ -156,6 +156,8 @@ A time value as returned by `current-time'.")
 (defvar magit-todos-section-heading "TODOs"
   "Allows overriding of section heading.")
 
+(defvar org-odd-levels-only)
+
 ;;;; Customization
 
 (defgroup magit-todos nil
@@ -274,7 +276,9 @@ regular expression."
                  (const :tag "Never" never)))
 
 (defcustom magit-todos-buffer-item-factor 10
-  "Multiply `magit-todos-auto-group-items' and `magit-todos-max-items' by this factor in dedicated `magit-todos' buffers."
+  "Adjustment to item grouping in dedicated `magit-todos' buffers.
+Multiplies `magit-todos-auto-group-items' and
+`magit-todos-max-items' by this factor."
   :type 'integer)
 
 (defcustom magit-todos-group-by '(magit-todos-item-keyword magit-todos-item-filename)
@@ -598,7 +602,8 @@ Chooses automatically in order defined in `magit-todos-scanners'."
 
 (cl-defun magit-todos--scan-callback (&key callback magit-status-buffer results-regexp process &allow-other-keys)
   "Call CALLBACK with arguments MAGIT-STATUS-BUFFER and match items.
-Match items are a list of `magit-todos-item' found in PROCESS's buffer for RESULTS-REGEXP."
+Match items are a list of `magit-todos-item' found in PROCESS's
+buffer for RESULTS-REGEXP."
   (funcall callback magit-status-buffer
            (with-current-buffer (process-buffer process)
              (magit-todos--buffer-items results-regexp))))
@@ -1219,15 +1224,18 @@ It also adds the scanner to the customization variable
        ;; FIXME: That is confusing.
 
        (cl-defun ,scan-fn-symbol (&key magit-status-buffer directory depth heading sync callback)
-         ,(format "Scan for to-dos with %s, then call `%s'.
-MAGIT-STATUS-BUFFER is what it says.  DIRECTORY is the directory in which to run the scan.  DEPTH should be an integer, typically the value of `magit-todos-depth'.  HEADING is passed to `%s'.
+         ,(format "Scan for to-dos with %s.
+Then calls CALLBACK.  MAGIT-STATUS-BUFFER is what it says.  DIRECTORY
+is the directory in which to run the scan.  DEPTH should be an
+integer, typically the value of `magit-todos-depth'.  HEADING is
+passed to CALLBACK.
 
 When SYNC is nil, the scanner process is returned, and CALLBACK
 is a function which is called by the process sentinel with one
 argument, a list of match items.
 
 When SYNC is non-nil, match items are returned."
-                  name callback callback)
+                  name-without-spaces)
          (let* ((process-connection-type 'pipe)
                 (directory (f-relative directory default-directory))
                 (extra-args (when ,extra-args-var
