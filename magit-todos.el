@@ -248,7 +248,9 @@ which the keys are the keywords.
 When set, sets `magit-todos-search-regexp' to the appropriate
 regular expression."
   :type '(choice (repeat :tag "Custom list" string)
-                 (const :tag "Keywords from `hl-todo'" hl-todo-keyword-faces)
+                 (const :tag "Keywords from `hl-todo'"
+                        :doc "Note that the keywords in `hl-todo-keyword-faces' are treated by it as regexps, while this package treats them as strings.  If this doesn't meet your needs, please use another option.  See <https://github.com/alphapapa/magit-todos/issues/101>."
+                        hl-todo-keyword-faces)
                  (variable :tag "List variable"))
   :set (lambda (option value)
          (set-default option value)
