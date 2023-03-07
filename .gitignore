@@ -1,2 +1,3 @@
 *.elc
 scratch.el
+/.sandbox/
