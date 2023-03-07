@@ -308,6 +308,27 @@ this in a directory-local variable for certain projects."
                  (const :tag "Repo root directory only" 0)
                  (integer :tag "N levels below the repo root")))
 
+(defcustom magit-todos-insert-after '(bottom)
+  "Where to insert the TODOs section in the Magit status buffer.
+The TODOs section is inserted after the first of these sections
+found, or at the bottom if none exist.  Specific sections may be
+chosen, using the first symbol returned by evaluating
+\"(magit-section-ident (magit-current-section))\" in the status
+buffer with point on the desired section, e.g. `recent' for the
+\"Recent commits\" section.  Note that this may not work exactly
+as desired when the built-in scanner is used."
+  :type '(repeat
+          (choice (const :tag "Top" top)
+                  (const :tag "Bottom" bottom)
+                  (const :tag "Recent commits" unpushed)
+                  (const :tag "Untracked files" untracked)
+                  (const :tag "Unstaged files" unstaged)
+                  (const :tag "Staged files" staged)
+                  (const :tag "Stashes" stashes)
+                  (const :tag "Pull requests (Forge)" pullreqs)
+                  (const :tag "Issues (Forge)" issues)
+                  (symbol :tag "Specified section"))))
+
 (defcustom magit-todos-insert-at 'bottom
   "Insert the to-dos section after this section in the Magit status buffer.
 Specific sections may be chosen, using the first symbol returned
@@ -320,7 +341,15 @@ used."
                  (const :tag "Bottom" bottom)
                  (const :tag "After untracked files" untracked)
                  (const :tag "After unstaged files" unstaged)
-                 (symbol :tag "After selected section")))
+                 (symbol :tag "After selected section"))
+  :set (lambda (option value)
+         ;; For convenience, we set the new option with the appropriate value (but,
+         ;; of course, this won't work for users who set it directly with `setq'.)
+         ;; TODO: Remove this option in 1.8.
+         (ignore option)
+         (custom-set-variables `(magit-todos-insert-after ',(list value)
+                                                          'now nil "Changed by setter of obsolete option `magit-todos-insert-at'"))))
+(make-obsolete-variable 'magit-todos-insert-at 'magit-todos-insert-after "1.6")
 
 (defcustom magit-todos-exclude-globs '(".git/")
   "Glob patterns to exclude from searches."
@@ -494,6 +523,29 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
                         (magit-todos--insert-todos))))
 
 ;;;; Functions
+
+(defun magit-todos--section-end (condition)
+  "Return end position of section matching CONDITION, or nil.
+CONDITION may be one accepted by `magit-section-match', or `top'
+or `bottom', which are handled specially."
+  (cl-labels ((find-section
+               (condition) (save-excursion
+                             (goto-char (point-min))
+                             (ignore-errors
+                               (cl-loop until (magit-section-match condition)
+                                        do (magit-section-forward)
+                                        finally return (magit-current-section))))))
+    (save-excursion
+      (goto-char (point-min))
+      (pcase condition
+        ('top (when-let ((section (or (find-section 'tags)
+                                      (find-section 'tag)
+                                      (find-section 'branch))))
+                ;; Add 1 to leave blank line after top sections.
+                (1+ (oref section end))))
+        ('bottom (oref (-last-item (oref magit-root-section children)) end))
+        (_ (when-let ((section (find-section condition)))
+             (oref section end)))))))
 
 (defun magit-todos--coalesce-groups (groups)
   "Return GROUPS, coalescing any groups with `equal' keys.
@@ -728,12 +780,10 @@ If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
           ;; Insert items
           (goto-char (point-min))
           ;; Go to insertion position
-          (pcase magit-todos-insert-at
-            ('top (cl-loop for ((this-section . _) . _) = (magit-section-ident (magit-current-section))
-                           until (not (member this-section '(branch tags)))
-                           do (magit-section-forward)))
-            ('bottom (goto-char (oref (-last-item (oref magit-root-section children)) end)))
-            (_ (magit-todos--skip-section (vector '* magit-todos-insert-at))))
+          (goto-char (or (cl-loop for section in magit-todos-insert-after
+                                  for pos = (magit-todos--section-end section)
+                                  when pos return pos)
+                         (magit-todos--section-end 'bottom)))
           ;; Insert section
           (let* ((group-fns (pcase magit-todos-auto-group-items
                               ('never nil)
@@ -760,7 +810,6 @@ If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
                                :group-fns group-fns
                                :items items
                                :depth 0)))
-                (insert "\n")
                 (magit-todos--set-visibility :section section :num-items num-items)))))))))
 
 (cl-defun magit-todos--insert-groups (&key depth group-fns heading type items)
@@ -822,7 +871,11 @@ sections."
                                                   (if (= 1 (length group-fns))
                                                       ":" ; Let Magit add the count.
                                                     ;; Add count ourselves.
-                                                    (concat " " (format "(%s)" (length items))))))))))
+                                                    (concat " " (format "(%s)" (length items)))))))
+                          (when (= 0 depth)
+                            ;; Insert a blank line only in the body of the top-level section, so it
+                            ;; will appear only when the section is expanded, matching other sections.
+                            (insert "\n")))))
           (magit-todos--set-visibility :depth depth :num-items (length items) :section section)
           ;; Add top-level section to root section's children
           (when (= 0 depth)
@@ -890,20 +943,6 @@ automatically hidden halves at each deeper level."
            (magit-section-hide section)
          ;; Not hidden: show section manually (necessary for some reason)
          (magit-section-show section)))))
-
-(defun magit-todos--skip-section (condition)
-  "Move past the section matching CONDITION.
-See `magit-section-match'."
-  (goto-char (point-min))
-  (cl-loop until (magit-section-match condition)
-           do (magit-section-forward))
-  (cl-loop until (not (magit-section-match condition))
-           do (condition-case nil
-                  ;; `magit-section-forward' raises an error when there are no more sections.
-                  (magit-section-forward)
-                (error (progn
-                         (goto-char (1- (point-max)))
-                         (cl-return))))))
 
 (cl-defun magit-todos--line-item (regexp &optional filename)
   "Return item on current line, parsing current buffer with REGEXP.
