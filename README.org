@@ -96,6 +96,12 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
 +  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
 
+*When magit-todos-follow-mode is activated:* 
++  @@html:<kbd>@@n@@html:</kbd>@@ :: Peek at the next item.
++  @@html:<kbd>@@p@@html:</kbd>@@ :: Peek at the previous item.
+
+
+
 *** Commands
 
 +  =magit-todos-mode= :: Activate =magit-todos-mode=, which automatically inserts the to-do list in Magit status buffers.
