@@ -119,8 +119,7 @@ magit-status buffer.")
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "jT" #'magit-todos-jump-to-todos)
-    (define-key map "jl" #'magit-todos-list)
+    (set-keymap-parent map magit-status-mode-map)
     (define-key map "b" #'magit-todos-branch-list-toggle)
     (define-key map "B" #'magit-todos-branch-list-set-commit)
     (define-key map [remap magit-visit-thing] #'magit-todos-list)
