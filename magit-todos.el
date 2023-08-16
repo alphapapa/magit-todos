@@ -1017,7 +1017,10 @@ created."
 This assumes that ITEM's filename is already set to a path
 relative to the repo's directory (i.e. this would not be very
 useful with absolute paths)."
-  (car (f-split (magit-todos-item-filename item))))
+  (let ((components (f-split (magit-todos-item-filename item))))
+    (if (equal (car components) ".")
+        (cadr components)
+      (car components))))
 
 (cl-defun magit-todos--async-start-process (name &key command finish-func)
   "Start the executable PROGRAM asynchronously.  See `async-start'.
