@@ -129,6 +129,10 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC:      0
 :END:
 
+*** 1.7-pre
+
+Nothing new yet.
+
 *** 1.6
 
 +  Emacs 26.1 or later is now required.
