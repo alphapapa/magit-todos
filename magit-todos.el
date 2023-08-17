@@ -1334,6 +1334,10 @@ When SYNC is non-nil, match items are returned."
 
 (magit-todos-defscanner "rg"
   :test (executable-find "rg")
+  :directory-form (if (equal directory default-directory)
+                      ;; Prevent leading "./" in filenames.
+                      nil
+                    (f-relative directory default-directory))
   :command (list "rg" "--no-heading" "--line-number"
                  (when depth
                    (list "--maxdepth" (1+ depth)))

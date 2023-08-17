@@ -133,6 +133,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Fixed*
 + Updated ~find|grep~ scanner for newer versions of GNU ~find~ that interpret some arguments differently.  (Tested on v4.8.0.)
++ Prevent leading ~./~ in filenames when used with ~rg~ scanner.  ([[https://github.com/alphapapa/magit-todos/pull/148][#148]].  Thanks to [[https://github.com/wentasah][Michal Sojka]] for reporting.)
 
 *** 1.6
 
