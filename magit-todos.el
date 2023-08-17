@@ -1140,6 +1140,7 @@ if the process's buffer has already been deleted."
 ;;;; Scanners
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp
+                                          (directory-form '(f-relative directory default-directory))
                                           (callback (function 'magit-todos--scan-callback)))
   "Define a `magit-todos' scanner named NAME.
 
@@ -1187,6 +1188,14 @@ Where MATCH may also match Org outline heading stars when
 appropriate.  Custom regexps may also match column numbers or
 byte offsets in the appropriate numbered groups; see
 `make-magit-todos-item'.
+
+DIRECTORY-FORM may be a form within which the symbol `directory'
+is bound to the directory path being searched; it should evaluate
+to the directory path that should be passed to the
+command.  (Since some commands' output differs by the way the
+search directory is passed, like \"./\" or \".\" vs. a full path,
+this may be used to, e.g. ensure that the command does not
+include a leading \"./\" in filenames.)
 
 CALLBACK is called to process the process's output buffer.
 Normally the default should be used, which inserts items into the
@@ -1237,7 +1246,7 @@ argument, a list of match items.
 When SYNC is non-nil, match items are returned."
                   name-without-spaces)
          (let* ((process-connection-type 'pipe)
-                (directory (f-relative directory default-directory))
+                (directory ,directory-form)
                 (extra-args (when ,extra-args-var
                               (--map (s-split (rx (1+ space)) it 'omit-nulls)
                                      ,extra-args-var)))
