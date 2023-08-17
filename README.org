@@ -131,6 +131,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *** 1.7-pre
 
+*Changed*
++ Improve behavior when scanner backend exits with an error.  (Now an error is signaled and the command's output is shown.)
+
 *Fixed*
 + Updated ~find|grep~ scanner for newer versions of GNU ~find~ that interpret some arguments differently.  (Tested on v4.8.0.)
 + Prevent leading ~./~ in filenames when used with ~rg~ scanner.  ([[https://github.com/alphapapa/magit-todos/pull/148][#148]].  Thanks to [[https://github.com/wentasah][Michal Sojka]] for reporting.)

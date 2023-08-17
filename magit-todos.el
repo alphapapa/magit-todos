@@ -1081,11 +1081,8 @@ if the process's buffer has already been deleted."
               (backward-sexp)
               (async-handle-result async-callback (read (current-buffer))
                                    (current-buffer)))
-          (set (make-local-variable 'async-callback-value)
-               (list 'error
-                     (format "Async process '%s' failed with exit code %d"
-                             (process-name proc) (process-exit-status proc))))
-          (set (make-local-variable 'async-callback-value-set) t))))))
+          (error "magit-todos--async-when-done: process %S failed with exit code %d.  Output:%S"
+                 (process-name proc) (process-exit-status proc) (buffer-string)))))))
 
 ;;;;; Formatters
 
