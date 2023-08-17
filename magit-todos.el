@@ -1408,14 +1408,18 @@ When SYNC is non-nil, match items are returned."
                                  ")" "-prune"))
                          (when magit-todos-exclude-globs
                            (list "-o" "("
-                                 (--map (list "-iname" it)
-                                        magit-todos-exclude-globs)
+                                 (-interpose (list "-o")
+                                             (--map (list "-iname"
+                                                          ;; Arguments to "-iname" must not end in "/".
+                                                          (replace-regexp-in-string (rx "/" eos) "" it))
+                                                    magit-todos-exclude-globs))
                                  ")" "-prune"))
                          (unless magit-todos-submodule-list
-                           (list "-o" "("
-                                 (--map (list "-iname" it)
-                                        (magit-list-module-paths))
-                                 ")" "-prune")))
+                           (when (magit-list-module-paths)
+                             (list "-o" "("
+                                   (--map (list "-ipath" it)
+                                          (magit-list-module-paths))
+                                   ")" "-prune"))))
                    (list "-o" "-type" "f")
                    ;; NOTE: This uses "grep -P", i.e. "Interpret the pattern as a
                    ;; Perl-compatible regular expression (PCRE).  This is highly

@@ -131,7 +131,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *** 1.7-pre
 
-Nothing new yet.
+*Fixed*
++ Updated ~find|grep~ scanner for newer versions of GNU ~find~ that interpret some arguments differently.  (Tested on v4.8.0.)
 
 *** 1.6
 
