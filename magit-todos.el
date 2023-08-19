@@ -1152,7 +1152,8 @@ COMMAND is a sexp which should evaluate to the scanner command,
 i.e. a list of strings to be eventually passed to
 `start-process'.  Nil elements are removed, numbers are converted
 to strings, and nested lists are flattened into a single list.
-It is evaluated each time the scanner is run.
+It is evaluated each time the scanner is run.  If COMMAND
+evaluates to nil, it is not run.
 
 Within the COMMAND list these variables are available:
 
@@ -1293,25 +1294,26 @@ When SYNC is non-nil, match items are returned."
                     when (numberp elt)
                     do (setf elt (number-to-string elt)))
            ;; Run command.
-           (if sync
-               ;; Synchronous: return matching items.
-               (with-temp-buffer
-                 (unless (= 0 (apply #'call-process (car command) nil (current-buffer) nil
-                                     (cdr command)))
-                   (user-error (concat (car command) " failed")))
-                 (magit-todos--buffer-items results-regexp))
-             ;; Async: return process.
-             (magit-todos--async-start-process ,scan-fn-name
-               :command command
-               ;; NOTE: This callback chain.
-               :finish-func (apply-partially ,callback
-                                             :callback callback
-                                             :magit-status-buffer magit-status-buffer
-                                             :results-regexp results-regexp
-                                             :search-regexp-elisp search-regexp-elisp
-                                             :heading heading
-                                             :exclude-globs magit-todos-exclude-globs
-                                             :process))))) ; Process is appended to the list.
+           (when command
+             (if sync
+                 ;; Synchronous: return matching items.
+                 (with-temp-buffer
+                   (unless (= 0 (apply #'call-process (car command) nil (current-buffer) nil
+                                       (cdr command)))
+                     (user-error (concat (car command) " failed")))
+                   (magit-todos--buffer-items results-regexp))
+               ;; Async: return process.
+               (magit-todos--async-start-process ,scan-fn-name
+                 :command command
+                 ;; NOTE: This callback chain.
+                 :finish-func (apply-partially ,callback
+                                               :callback callback
+                                               :magit-status-buffer magit-status-buffer
+                                               :results-regexp results-regexp
+                                               :search-regexp-elisp search-regexp-elisp
+                                               :heading heading
+                                               :exclude-globs magit-todos-exclude-globs
+                                               :process)))))) ; Process is appended to the list.
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
