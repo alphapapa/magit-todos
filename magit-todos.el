@@ -1375,11 +1375,12 @@ When SYNC is non-nil, match items are returned."
   :command (progn
              ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
              (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
-             (list "git" "--no-pager" "diff" "--no-color" "-U0"
-                   (-> "git merge-base HEAD "
-                       (concat magit-todos-branch-list-merge-base-ref)
-                       shell-command-to-string
-                       string-trim)))
+             (let ((merge-base-ref (-> "git merge-base HEAD "
+                                       (concat magit-todos-branch-list-merge-base-ref)
+                                       shell-command-to-string
+                                       string-trim)))
+               (unless (string-empty-p merge-base-ref)
+                 (list "git" "--no-pager" "diff" "--no-color" "-U0" merge-base-ref))))
   :callback 'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"
