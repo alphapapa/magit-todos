@@ -448,7 +448,6 @@ Only necessary when option `magit-todos-update' is nil."
   (setq-local magit-todos-branch-list-merge-base-ref ref)
   (magit-todos-update))
 
-(declare-function org-show-entry "org")
 (cl-defun magit-todos-jump-to-item (&key peek (item (oref (magit-current-section) value)))
   "Show current item.
 If PEEK is non-nil, keep focus in status buffer window."
@@ -458,7 +457,14 @@ If PEEK is non-nil, keep focus in status buffer window."
     (pop-to-buffer buffer)
     (magit-todos--goto-item item)
     (when (derived-mode-p 'org-mode)
-      (org-show-entry))
+      ;; Because `org-show-entry' was renamed and moved in Org 9.6, we
+      ;; have to silence warnings about it.  If Org is loaded, the
+      ;; function will be.
+      (cond ((version<= "9.6" (org-version))
+             (with-no-warnings
+               (org-fold-show-entry)))
+            (t (with-no-warnings
+                 (org-show-entry)))))
     (when peek
       (select-window status-window))))
 
