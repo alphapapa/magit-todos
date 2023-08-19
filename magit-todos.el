@@ -1074,7 +1074,7 @@ if the process's buffer has already been deleted."
       (let ((async-current-process proc))
         ;; TRAMP processes seem to have the exit status 9 instead of
         ;; 0.  I can't find documentation or code about it.
-        (if (memq (process-exit-status proc) '(0 9))
+        (if (memq (process-exit-status proc) (process-get proc :allow-exit-codes))
             (if async-callback-for-process
                 (if async-callback
                     (prog1
@@ -1143,6 +1143,7 @@ if the process's buffer has already been deleted."
 ;;;; Scanners
 
 (cl-defmacro magit-todos-defscanner (name &key test command results-regexp
+                                          (allow-exit-codes '(0))
                                           (directory-form '(f-relative directory default-directory))
                                           (callback (function 'magit-todos--scan-callback)))
   "Define a `magit-todos' scanner named NAME.
@@ -1193,6 +1194,12 @@ appropriate.  Custom regexps may also match column numbers or
 byte offsets in the appropriate numbered groups; see
 `make-magit-todos-item'.
 
+ALLOW-EXIT-CODES is a list of integers corresponding to exit
+codes which should not be interpreted as errors (e.g. rg uses 1
+to indicate no match and no error, so its list should include 0
+and 1).  Note that TRAMP seems to use code 9 instead of 0, so 9
+is added to this list automatically.
+
 DIRECTORY-FORM may be a form within which the symbol `directory'
 is bound to the directory path being searched; it should evaluate
 to the directory path that should be passed to the
@@ -1228,6 +1235,8 @@ It also adds the scanner to the customization variable
          (scan-fn-name (concat "magit-todos--scan-with-" name-without-spaces))
          (scan-fn-symbol (intern scan-fn-name))
          (extra-args-var (intern (format "magit-todos-%s-extra-args" name-without-spaces))))
+    (cl-pushnew 9 allow-exit-codes)
+    (setf allow-exit-codes (sort allow-exit-codes #'<))
     `(progn
        (defcustom ,extra-args-var nil
          ,(format "Extra arguments passed to %s." name)
@@ -1304,22 +1313,25 @@ When SYNC is non-nil, match items are returned."
              (if sync
                  ;; Synchronous: return matching items.
                  (with-temp-buffer
-                   (unless (= 0 (apply #'call-process (car command) nil (current-buffer) nil
-                                       (cdr command)))
+                   (unless (member (apply #'call-process (car command) nil (current-buffer) nil
+                                          (cdr command))
+                                   ',allow-exit-codes)
                      (user-error (concat (car command) " failed")))
                    (magit-todos--buffer-items results-regexp))
                ;; Async: return process.
-               (magit-todos--async-start-process ,scan-fn-name
-                 :command command
-                 ;; NOTE: This callback chain.
-                 :finish-func (apply-partially ,callback
-                                               :callback callback
-                                               :magit-status-buffer magit-status-buffer
-                                               :results-regexp results-regexp
-                                               :search-regexp-elisp search-regexp-elisp
-                                               :heading heading
-                                               :exclude-globs magit-todos-exclude-globs
-                                               :process)))))) ; Process is appended to the list.
+               (let ((process (magit-todos--async-start-process ,scan-fn-name
+                                :command command
+                                ;; NOTE: This callback chain.
+                                :finish-func (apply-partially ,callback
+                                                              :callback callback
+                                                              :magit-status-buffer magit-status-buffer
+                                                              :results-regexp results-regexp
+                                                              :search-regexp-elisp search-regexp-elisp
+                                                              :heading heading
+                                                              :exclude-globs magit-todos-exclude-globs
+                                                              :process)))) ; Process is appended to the list.
+                 (setf (process-get process :allow-exit-codes) ',allow-exit-codes)
+                 process)))))
        (magit-todos--add-to-custom-type 'magit-todos-scanner
          (list 'const :tag ,name #',scan-fn-symbol))
        (add-to-list 'magit-todos-scanners
@@ -1343,6 +1355,7 @@ When SYNC is non-nil, match items are returned."
                       ;; Prevent leading "./" in filenames.
                       nil
                     (f-relative directory default-directory))
+  :allow-exit-codes (0 1)
   :command (list "rg" "--no-heading" "--line-number"
                  (when depth
                    (list "--maxdepth" (1+ depth)))
@@ -1358,6 +1371,7 @@ When SYNC is non-nil, match items are returned."
 
 (magit-todos-defscanner "git grep"
   :test (string-match "--perl-regexp" (shell-command-to-string "git grep --magit-todos-testing-git-grep"))
+  :allow-exit-codes (0 1)
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
                  (when depth
@@ -1393,6 +1407,7 @@ When SYNC is non-nil, match items are returned."
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
   ;; used much, if at all, so I'm not going to go to the trouble to fix this now.
   :test (string-match "--perl-regexp" (shell-command-to-string "grep --help"))
+  :allow-exit-codes (0 1)
   :command (let* ((grep-find-template (progn
                                         (unless grep-find-template
                                           (grep-compute-defaults))
