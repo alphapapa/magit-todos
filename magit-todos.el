@@ -760,7 +760,8 @@ This function should be called from inside a ‘magit-status’ buffer."
      (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
-                 (not (string= "master" (magit-get-current-branch)))))
+                 (not (or (string= "master" (magit-get-current-branch))
+                           (string= "main" (magit-get-current-branch))))))
     ;; Insert branch-local items.
     (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
                                      :directory default-directory
