@@ -115,7 +115,7 @@ This should be set automatically by customizing
 (defvar-local magit-todos-active-scan nil
   "The current scan's process.
 Used to avoid running multiple simultaneous scans for a
-magit-status buffer.")
+`magit-status' buffer.")
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
@@ -167,7 +167,7 @@ A time value as returned by `current-time'.")
 (defcustom magit-todos-scanner nil
   "File scanning method.
 \"Automatic\" will attempt to use rg, ag, git-grep, and
-find-grep, in that order. "
+find-grep, in that order."
   :type '(choice (const :tag "Automatic" nil)
                  (function :tag "Custom function"))
   :set (lambda (option value)
@@ -444,13 +444,13 @@ Only necessary when option `magit-todos-update' is nil."
   (magit-todos-update))
 
 (defun magit-todos-branch-list-set-commit (ref)
-  "Set commit ref used in branch to-do list."
+  "Set commit REF used in branch to-do list."
   (interactive (list (completing-read "Refname: " (magit-list-refnames))))
   (setq-local magit-todos-branch-list-merge-base-ref ref)
   (magit-todos-update))
 
 (cl-defun magit-todos-jump-to-item (&key peek (item (oref (magit-current-section) value)))
-  "Show current item.
+  "Show current ITEM.
 If PEEK is non-nil, keep focus in status buffer window."
   (interactive)
   (let* ((status-window (selected-window))
@@ -494,7 +494,8 @@ If PEEK is non-nil, keep focus in status buffer window."
 ;;;###autoload
 (defun magit-todos-list (&optional directory)
   "Show to-do list of the current Git repository in a buffer.
-With prefix, prompt for repository."
+With prefix, prompt for repository.  Use repository in DIRECTORY,
+or `default-directory' if nil."
   ;; Mostly copied from `magit-status'
   (interactive
    (let ((magit--refresh-cache (list (cons 0 0))))
@@ -547,13 +548,13 @@ Type \\[magit-diff-show-or-scroll-up] to peek at the item at point."
   "Return end position of section matching CONDITION, or nil.
 CONDITION may be one accepted by `magit-section-match', or `top'
 or `bottom', which are handled specially."
-  (cl-labels ((find-section
-               (condition) (save-excursion
-                             (goto-char (point-min))
-                             (ignore-errors
-                               (cl-loop until (magit-section-match condition)
-                                        do (magit-section-forward)
-                                        finally return (magit-current-section))))))
+  (cl-labels ((find-section (condition)
+                (save-excursion
+                  (goto-char (point-min))
+                  (ignore-errors
+                    (cl-loop until (magit-section-match condition)
+                             do (magit-section-forward)
+                             finally return (magit-current-section))))))
     (save-excursion
       (goto-char (point-min))
       (pcase condition
@@ -637,7 +638,13 @@ buffer for RESULTS-REGEXP."
 
 (cl-defun magit-todos--git-diff-callback (&key magit-status-buffer results-regexp search-regexp-elisp process heading
                                                exclude-globs &allow-other-keys)
-  "Callback for git diff scanner output."
+  "Callback for git diff scanner output.
+Insert into MAGIT-STATUS-BUFFER.  RESULTS-REGEXP matches a result
+on each line.  SEARCH-REGEXP-ELISP finds the next hunk of
+results.  PROCESS is the \"git diff\" process object.
+`magit-todos-section-heading' is bound to HEADING when inserting
+items.  EXCLUDE-GLOBS is a list of glob patterns matching
+filenames to be excluded."
   ;; NOTE: Doesn't handle newlines in filenames or diff.mnemonicPrefix.
   (cl-macrolet ((next-diff () `(re-search-forward (rx bol "diff --git ") nil t))
                 (next-filename () `(when (re-search-forward (rx bol "+++ b/" (group (1+ nonl))) nil t)
@@ -1002,6 +1009,7 @@ advance to the next line."
 
 (defun magit-todos--fontify-like-in-org-mode (s &optional odd-levels)
   "Fontify string S like in Org-mode.
+Bind `org-odd-levels-only' to ODD-LEVELS.
 
 `org-fontify-like-in-org-mode' is a very, very slow function
 because it creates a new temporary buffer and runs `org-mode' for
@@ -1029,12 +1037,12 @@ useful with absolute paths)."
   (car (f-split (magit-todos-item-filename item))))
 
 (cl-defun magit-todos--async-start-process (name &key command finish-func)
-  "Start the executable PROGRAM asynchronously.  See `async-start'.
+  "Start the executable COMMAND asynchronously.  See `async-start'.
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
 finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
-working directory.
+working directory.  Process is named NAME.
 
 This is a copy of `async-start-process' that does not override
 `process-connection-type'.  It also uses keyword arguments."
@@ -1054,7 +1062,7 @@ This is a copy of `async-start-process' that does not override
       proc)))
 
 (defun magit-todos--async-when-done (proc &optional _change)
-  "Process sentinel used to retrieve the value from the child process.
+  "Process sentinel used to retrieve the value from the child PROC.
 
 This is a copy of `async-when-done' that does not raise an error
 if the process's buffer has already been deleted."
@@ -1090,7 +1098,7 @@ if the process's buffer has already been deleted."
               (backward-sexp)
               (async-handle-result async-callback (read (current-buffer))
                                    (current-buffer)))
-          (error "magit-todos--async-when-done: process %S failed with exit code %d.  Output:%S"
+          (error "magit-todos--async-when-done: Process %S failed with exit code %d.  Output:%S"
                  (process-name proc) (process-exit-status proc) (buffer-string)))))))
 
 ;;;;; Formatters
@@ -1121,7 +1129,7 @@ if the process's buffer has already been deleted."
 (defun magit-todos--sort-by-keyword (a b)
   "Return non-nil if A's keyword is before B's in `magit-todos-keywords-list'."
   (cl-flet ((keyword-index (keyword)
-                           (or (-elem-index keyword magit-todos-keywords-list) 0)))
+              (or (-elem-index keyword magit-todos-keywords-list) 0)))
     (< (keyword-index (magit-todos-item-keyword a))
        (keyword-index (magit-todos-item-keyword b)))))
 
@@ -1486,7 +1494,7 @@ When SYNC is non-nil, match items are returned."
 ;; Helm or Ivy to be installed; it is only called after one of them is loaded.
 
 (declare-function helm-make-source "ext:helm-source")
-(declare-function helm "ext:helm")
+(declare-function helm "ext:helm-core")
 
 (with-eval-after-load 'helm
   (defvar helm-magit-todos-source
