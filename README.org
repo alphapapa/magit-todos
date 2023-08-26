@@ -1,21 +1,26 @@
-* magit-todos
+#+TITLE: magit-todos
 
-  [[https://melpa.org/#/magit-todos][file:https://melpa.org/packages/magit-todos-badge.svg]] [[https://stable.melpa.org/#/magit-todos][file:https://stable.melpa.org/packages/magit-todos-badge.svg]]
+# NOTE: To avoid having this in the info manual, we use HTML rather than Org syntax; it still appears with the GitHub renderer.
+#+HTML: <a href="https://melpa.org/#/magit-todos"><img src="https://melpa.org/packages/magit-todos-badge.svg"></a> <a href="https://stable.melpa.org/#/magit-todos"><img src="https://stable.melpa.org/packages/magit-todos-badge.svg"></a>
 
 This package displays keyword entries from source code comments and Org files in the Magit status buffer.  Activating an item jumps to it in its file.  By default, it uses keywords from [[https://github.com/tarsius/hl-todo][hl-todo]], minus a few (like =NOTE=).
 
-** Contents
+* Contents
 :PROPERTIES:
-:TOC:      siblings
+:TOC:      :include siblings :ignore this :depth 0
 :END:
 
-    -  [[#screenshots][Screenshots]]
-    -  [[#installation][Installation]]
-    -  [[#usage][Usage]]
-    -  [[#changelog][Changelog]]
-    -  [[#credits][Credits]]
+:CONTENTS:
+- [[#installation][Installation]]
+- [[#usage][Usage]]
+- [[#changelog][Changelog]]
+- [[#credits][Credits]]
+:END:
 
-** Screenshots
+* Screenshots
+:PROPERTIES:
+:TOC:      :ignore (this)
+:END:
 
 [[screenshots/matrix.png]]
 
@@ -39,12 +44,12 @@ Items specific to the current branch (or =git diff=) can be displayed in a separ
 
 [[screenshots/branch-list.png]]
 
-** Installation
+* Installation
 :PROPERTIES:
-:TOC:      0
+:TOC:      :ignore descendants
 :END:
 
-*** External scanner
+** External scanner
 
 One of the following external scanners is required:
 
@@ -54,11 +59,11 @@ One of the following external scanners is required:
 
 Most Linux systems should have the latter two by default, but some non-standard systems may not.  For example, on MacOS you may use [[https://brew.sh/][Homebrew]] to install =ripgrep=, or =git= with PCRE support, like: ~brew reinstall --with-pcre2 git~.
 
-*** Emacs package
+** Emacs package
 
 If you installed from MELPA, you're done!
 
-**** Manually
+*** Manually
 
 Install these required packages:
 
@@ -76,14 +81,21 @@ Then put this file in your =load-path=, and put this in your init file:
   (require 'magit-todos)
 #+END_SRC
 
-** Usage
+* Usage
 :PROPERTIES:
-:TOC:      0
+:TOC:      :include descendants :depth 1 :local (depth)
 :END:
+
+:CONTENTS:
+- [[#key-bindings][Key bindings]]
+- [[#commands][Commands]]
+- [[#tips][Tips]]
+:END:
+
 
 Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
 
-*** Key bindings
+** Key bindings
 
 *In Magit status buffer:*
 +  @@html:<kbd>@@j T@@html:</kbd>@@ :: Jump to the to-do list.  If the section is empty (e.g. when using manual updates), it will scan for items.
@@ -96,7 +108,7 @@ Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-tod
 +  @@html:<kbd>@@RET@@html:</kbd>@@ :: Show item at point, or open dedicated buffer if point is on top heading.
 +  @@html:<kbd>@@SPC@@html:</kbd>@@ :: Peek at the item at point.
 
-*** Commands
+** Commands
 
 +  =magit-todos-mode= :: Activate =magit-todos-mode=, which automatically inserts the to-do list in Magit status buffers.
 +  =magit-todos-list= :: Display the to-do list in a separate buffer.  This also works outside of git repos.
@@ -106,7 +118,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  =helm-magit-todos= :: Display the project to-do list with Helm.
 +  =ivy-magit-todos= :: Display the project to-do list with Ivy.
 
-*** Tips
+** Tips
 
 +  Customize settings in the =magit-todos= group.
 +  Use dir-local variables to set per-repository settings.  For example, to exclude files and directories from being scanned for to-dos in a repo:
@@ -117,19 +129,19 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
      5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
 +  The ~magit-todos-list~ command also works outside of git repos.
 
-**** TRAMP
+*** TRAMP
 :PROPERTIES:
 :CUSTOM_ID: TRAMP
 :END:
 
 =magit-todos= attempts to work in remote repositories accessed via TRAMP.  Note that if TRAMP can't find the scanner configured in =magit-todos-scanner=, you may need to use directory-local variables to either add the correct path to =tramp-remote-path= or choose a different scanner.
 
-** Changelog
+* Changelog
 :PROPERTIES:
-:TOC:      0
+:TOC: :ignore descendants
 :END:
 
-*** 1.7-pre
+** 1.7-pre
 
 *Changed*
 + Improve behavior when scanner backend exits with an error.  (Now an error is signaled and the command's output is shown.)
@@ -139,7 +151,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 + Updated ~find|grep~ scanner for newer versions of GNU ~find~ that interpret some arguments differently.  (Tested on v4.8.0.)
 + Prevent leading ~./~ in filenames when used with ~rg~ scanner.  ([[https://github.com/alphapapa/magit-todos/pull/148][#148]].  Thanks to [[https://github.com/wentasah][Michal Sojka]] for reporting.)
 
-*** 1.6
+** 1.6
 
 +  Emacs 26.1 or later is now required.
 
@@ -165,22 +177,22 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 +  Define jumper keys using a Transient suffix.
 +  Use new git-testing function in Magit for remote directories.  ([[https://github.com/alphapapa/magit-todos/pull/126][#126]].  Thanks to [[https://github.com/maxhollmann][Max Hollmann]].)
 
-*** 1.5.3
+** 1.5.3
 
 *Fixes*
 +  Remove face from indentation.  (Thanks to [[https://github.com/Alexander-Miller][Alexander Miller]].)
 
-*** 1.5.2
+** 1.5.2
 
 *Fixes*
 +  Use =magit-todos-exclude-globs= in branch todo list.
 
-*** 1.5.1
+** 1.5.1
 
 *Fixes*
 +  Add insertion function to end of =magit-status-sections-hook=.
 
-*** 1.5
+** 1.5
 
 *Added*
 +  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
@@ -195,24 +207,24 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Removed*
 +  Option =magit-todos-branch-list-commit-ref=, replaced by option =magit-todos-branch-list-merge-base-ref=.
 
-*** 1.4.3
+** 1.4.3
 
 *Fixed*
 +  Don't use =--help= option when testing =git grep= command, because it can launch a Web browser on some configurations or platforms (see [[https://github.com/alphapapa/magit-todos/issues/43][#43]]).
 +  Caching when branch diff list is displayed.
 +  Commands =magit-section-forward= / =backward= sometimes skipped sections (see [[https://github.com/alphapapa/magit-todos/issues/66][#66]]).
 
-*** 1.4.2
+** 1.4.2
 
 *Fixed*
 +  Refreshing =magit-todos-list= buffer.  ([[https://github.com/alphapapa/magit-todos/issues/92][#92]].  Thanks to [[https://github.com/filalex77][Oleksii Filonenko]] and [[https://github.com/hlissner][Henrik Lissner]] for reporting.)
 
-*** 1.4.1
+** 1.4.1
 
 *Fixed*
 +  Compiler warning.
 
-*** 1.4
+** 1.4
 
 *Added*
 +  Commands =helm-magit-todos= and =ivy-magit-todos=, which display items with Helm and Ivy.  (Note that Helm and Ivy are not required, nor does this package depend on them; they are only used if present.)
@@ -226,7 +238,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Internal*
 +  Add synchronous mode to scanner functions, which return results directly usable by other code.
 
-*** 1.3
+** 1.3
 
 *Added*
 +  Branch diff task list.  See new options =magit-todos-branch-list= and =magit-todos-branch-list-commit-ref=, and command =magit-todos-branch-list-toggle=, bound to =b= with point on to-do list heading.  ([[https://github.com/alphapapa/magit-todos/issues/30][#30]], [[https://github.com/alphapapa/magit-todos/issues/77][#77]], [[https://github.com/alphapapa/magit-todos/pull/82][#82]].  Thanks to [[https://github.com/itamarst][Itamar Turner-Trauring]] and [[https://github.com/arronmabrey][Arron Mabrey]] for the suggestion, and to [[https://github.com/smaret][Sébastien Maret]] for implementing the commit-ref option.)
@@ -234,7 +246,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Internal*
 +  Put newline in section headings.  ([[https://github.com/alphapapa/magit-todos/pull/68][#68]].  Thanks to [[https://github.com/vermiculus][Sean Allred]].)
 
-*** 1.2
+** 1.2
 
 *Added*
 +  Allow ~magit-todos-list~ to work outside git repos.
@@ -251,49 +263,49 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Removed*
 + Option ~magit-todos-require-colon~, replaced by ~magit-todos-keyword-suffix~.
 
-*** 1.1.8
+** 1.1.8
 
 *Fixed*
 +  Properly unbind key when mode is disabled. ([[https://github.com/alphapapa/magit-todos/pull/74][#74]].  Thanks to [[https://github.com/akirak][Akira Komamura]].)
 +  Don't show message when key is already bound correctly.  ([[https://github.com/alphapapa/magit-todos/pull/75][#75]].  Thanks to [[https://github.com/akirak][Akira Komamura]].)
 
-*** 1.1.7
+** 1.1.7
 
 *Fixed*
 +  Disable undo in hidden Org fontification buffer.
 +  Expand top-level to-do list in ~magit-todos-list~ buffer.
 
-*** 1.1.6
+** 1.1.6
 
 *Fixed*
 +  Insert root section in ~magit-todos-list~ command.  (Really fixes [[https://github.com/alphapapa/magit-todos/issues/55][#55]].  Thanks to [[https://github.com/tarsius][Jonas Bernoulli]].)
 
-*** 1.1.5
+** 1.1.5
 
 *Fixed*
 +  Hide process buffers.  (Thanks to [[https://github.com/purcell][Steve Purcell]].)
 
-*** 1.1.4
+** 1.1.4
 
 *Fixes*
 +  ~magit-todos-depth~ number-to-string conversion.
 
-*** 1.1.3
+** 1.1.3
 
 *Fixes*
 +  Update ~magit-todos-list~ for Magit [[https://github.com/magit/magit/commit/40616d7ba57b7c491513e4130d82371460f9e94d][change]].  (Fixes [[https://github.com/alphapapa/magit-todos/issues/55][#55]].  Thanks to [[https://github.com/Oghma][Matteo Lisotto]].)
 
-*** 1.1.2
+** 1.1.2
 
 *Fixes*
 +  Convert ~magit-todos-depth~ setting appropriately for =rg= scanner.
 
-*** 1.1.1
+** 1.1.1
 
 *Fixes*
 +  Ensure mode is activated in ~magit-todos-update~ command.  (Fixes #54.  Thanks to [[https://github.com/smaret][Sebastien Maret]].)
 
-*** 1.1
+** 1.1
 
 *Additions*
 +  Dedicated to-do list buffer.
@@ -307,44 +319,44 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *Fixes*
 +  Add missing ~cl-~ prefix.  Thanks to [[https://github.com/jellelicht][Jelle Licht]].
 
-*** 1.0.4
+** 1.0.4
 
 *Fixes*
 +  Fix =find|grep= scanner ([[https://github.com/alphapapa/magit-todos/issues/46][issue 46]]).  Thanks to [[https://github.com/Ambrevar][Pierre Neidhardt]].
 
-*** 1.0.3
+** 1.0.3
 
 *Fixes*
 +  Define variables earlier to avoid compiler warnings.
 +  Remove unused var ~magit-todos-ignore-file-suffixes~.
 
-*** 1.0.2
+** 1.0.2
 
 *Fixes*
 +  ~regexp-quote~ item keywords when jumping to an item.  (Fixes #36.  Thanks to [[https://github.com/dfeich][Derek Feichtinger]].)
 +  Ensure =grep= supports =--perl-regexp=.
 +  Warn when unable to find a suitable scanner (i.e. =rg=, or a PCRE-compatible version of =git= or =grep=).
 
-*** 1.0.1
+** 1.0.1
 
 *Fixes*
 +  Test whether =git grep= supports =--perl-regexp= by checking its =--help= output, rather than doing a search and checking for an error.
 +  ~message~ instead of ~error~ for weird behavior.  (This message exists to help track down an inconsequential bug.)
 +  Remove unused ~magit-todos-ignore-directories~ option.  (To be replaced in a future release.)
 
-*** 1.0.0
+** 1.0.0
 
 Initial release.
 
-** Credits
+* Credits
 
 +  This package was inspired by [[https://github.com/danielma/magit-org-todos.el][magit-org-todos]].
 +  The =ag= support was made much simpler by the great [[https://github.com/joddie/pcre2el][pcre2el]] package by Jon Oddie.
 +  Thanks to [[https://github.com/zhaojiangbin][Jiangbin Zhao]] for his extensive testing and feedback.
 
-** License
+* License
 :PROPERTIES:
-:TOC:      ignore
+:TOC:      :ignore this
 :END:
 
 GPLv3
