@@ -370,7 +370,7 @@ This can be toggled locally in Magit buffers with command
                  (const :tag "In non-master branches" branch)
                  (const :tag "Always" t)))
 
-(defcustom magit-todos-branch-list-merge-base-ref "master"
+(defcustom magit-todos-branch-list-merge-base-ref nil
   "Commit ref passed to command \"git merge-base HEAD\".
 Determines the ancestor commit from which the current branch's
 todos should be searched for.  May be overridden in the case that
@@ -387,7 +387,8 @@ By default, the branch todo list would show todos from both the
 \"topic\" branch and the \"topic2\" branch.  To show only todos
 from the \"topic2\" branch, this option could be set to
 \"topic\"."
-  :type 'string)
+  :type '(choice (const :tag "Automatic" :doc "Value returned by `magit-main-branch'" nil)
+                 (string :tag "Specified branch name")))
 
 (defcustom magit-todos-submodule-list nil
   "Show submodule to-do list."
@@ -760,12 +761,14 @@ This function should be called from inside a ‘magit-status’ buffer."
      (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
-                 (not (string= "master" (magit-get-current-branch)))))
+                 (not (equal (or magit-todos-branch-list-merge-base-ref (magit-main-branch))
+                             (magit-get-current-branch)))))
     ;; Insert branch-local items.
     (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
                                      :directory default-directory
                                      :depth magit-todos-depth
-                                     :heading (format "TODOs (branched from %s)" magit-todos-branch-list-merge-base-ref))))
+                                     :heading (format "TODOs (branched from %s)"
+                                                      (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))))
 
 (cl-defun magit-todos--insert-items (magit-status-buffer items &key branch-p)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER.
@@ -1396,7 +1399,7 @@ When SYNC is non-nil, match items are returned."
              ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
              (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
              (let ((merge-base-ref (-> "git merge-base HEAD "
-                                       (concat magit-todos-branch-list-merge-base-ref)
+                                       (concat (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))
                                        shell-command-to-string
                                        string-trim)))
                (unless (string-empty-p merge-base-ref)

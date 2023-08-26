@@ -133,6 +133,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Changed*
 + Improve behavior when scanner backend exits with an error.  (Now an error is signaled and the command's output is shown.)
++ Option ~magit-todos-branch-list-merge-base-ref~ defaults to nil, which automatically detects the default branch name using function ~magit-main-branch~. ([[https://github.com/alphapapa/magit-todos/issues/151][#151]].  Thanks to [[https://github.com/bcc32][Aaron Zeng]] for reporting.)
 
 *Fixed*
 + Updated ~find|grep~ scanner for newer versions of GNU ~find~ that interpret some arguments differently.  (Tested on v4.8.0.)
