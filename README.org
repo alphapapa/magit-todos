@@ -81,7 +81,7 @@ Then put this file in your =load-path=, and put this in your init file:
 :TOC:      0
 :END:
 
-Activate =magit-todos-mode=.  Then open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
+Activate =magit-todos-mode= (or add it to the ~magit-mode-hook~, see the Tips section).  Then open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
 
 *** Key bindings
 
@@ -116,6 +116,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
      4.  Input the glob value, like ~("*.html")~ to exclude HTML files.  (Note that the input is read as a lisp value, and this variable must be a list of strings.)
      5.  Now Emacs will remember that setting in that repository.  (You may also want to commit the =.dir-locals.el= file to the repo.)
 +  The ~magit-todos-list~ command also works outside of git repos.
++  If you don't want to start this minor mode manually, add the following to your config: ~(add-hook 'magit-mode-hook 'magit-todos-mode)~
 
 **** TRAMP
 :PROPERTIES:
@@ -183,7 +184,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 *** 1.5
 
 *Added*
-+  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][usage notes]].
++  Support for remote repositories accessed via TRAMP.  See [[#TRAMP][notes]].
 +  Ivy history support.  (Thanks to [[https://github.com/leungbk][Brian Leung]].)
 +  Option =magit-todos-branch-list-merge-base-ref=.
 +  Command =magit-todos-branch-list-set-commit=, bound to =B= with point in a to-do section.
