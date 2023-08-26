@@ -141,7 +141,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC: :ignore descendants
 :END:
 
-** 1.7-pre
+** 1.7
 
 *Changed*
 + Improve behavior when scanner backend exits with an error.  (Now an error is signaled and the command's output is shown.)
