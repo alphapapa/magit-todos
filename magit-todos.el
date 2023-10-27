@@ -624,16 +624,7 @@ buffer for RESULTS-REGEXP."
     (save-excursion
       (goto-char (point-min))
       (while (not (eobp))
-        (--when-let (condition-case err
-                        (magit-todos--line-item results-regexp)
-                      ;; Files with very, very long lines may cause Emacs's regexp matcher to overflow.
-                      ;; Rather than abort the whole scan and raise an error, try to handle it gracefully.
-                      ;; FIXME: This may raise multiple warnings per file.
-                      (error (if (string= "Stack overflow in regexp matcher" (error-message-string err))
-                                 (let ((filename (buffer-substring (point) (1- (re-search-forward ":")))))
-                                   (display-warning 'magit-todos (concat "File has lines too long for Emacs to search.  Consider excluding it from scans: " filename))
-                                   nil)
-                               (signal (car err) (cdr err)))))
+        (--when-let (magit-todos--line-item results-regexp)
           (push it items))
         (forward-line 1)))
     (nreverse items)))
@@ -984,7 +975,14 @@ This should be called in a process's output buffer from one of
 the async callback functions.  The calling function should
 advance to the next line."
   (let ((case-fold-search magit-todos-ignore-case))
-    (when (re-search-forward regexp (line-end-position) t)
+    (when (condition-case err
+              (re-search-forward regexp (line-end-position) t)
+            (error (if (string-match-p "Stack overflow in regexp matcher" (error-message-string err))
+                       ;; FIXME: This may raise multiple warnings per file.
+                       (let ((filename (buffer-substring (point) (1- (re-search-forward ":")))))
+                         (message "magit-todos: File has lines too long for Emacs to search.  Consider excluding it from scans: %s" filename)
+                         nil)
+                     (signal (car err) (cdr err)))))
       (make-magit-todos-item :filename (or filename
                                            (match-string 8))
                              :line (--when-let (match-string 2)
