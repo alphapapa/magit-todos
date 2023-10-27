@@ -141,6 +141,10 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC: :ignore descendants
 :END:
 
+** 1.8-pre
+
+Nothing new yet.
+
 ** 1.7
 
 *Changed*
