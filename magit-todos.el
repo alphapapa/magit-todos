@@ -210,7 +210,7 @@ items."
   "Apply keyword faces to group keyword headers."
   :type 'boolean)
 
-(defcustom magit-todos-keyword-suffix (rx (optional "(" (1+ (not (any ")"))) ")") ":")
+(defcustom magit-todos-keyword-suffix (rx (optional (or "(" "[") (1+ (not (any ")" "]"))) (or ")" "]")) ":")
   "Regular expression matching suffixes after keywords.
 e.g. to match a keyword like \"TODO(user):\", use \"([^)]+):\".
 
@@ -220,8 +220,10 @@ account for optional whitespace after the suffix, as this is done
 automatically.
 
 Note: the suffix applies only to non-Org files."
-  :type `(choice (const :tag "Optional username in parens, then required colon (matching e.g. \"TODO:\" or \"TODO(user):\")"
+  :type `(choice (const :tag "Optional suffix in parens, then required colon (matching e.g. \"TODO:\" or \"TODO(foo):\")"
                         ,(rx (optional "(" (1+ (not (any ")"))) ")") ":"))
+                 (const :tag "Optional suffix in parens or brackets, then required colon (matching e.g. \"TODO:\" or \"TODO(foo):\" or \"TODO[foo]:\")"
+                        ,(rx (optional (or "(" "[") (1+ (not (any ")" "]"))) (or ")" "]")) ":"))
                  (const :tag "Required colon (matching e.g. \"TODO:\"" ":")
                  (string :tag "Custom regexp"))
   :package-version '(magit-todos . "1.2"))

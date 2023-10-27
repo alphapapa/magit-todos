@@ -143,7 +143,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 ** 1.8-pre
 
-Nothing new yet.
+*Changed*
++ Option ~magit-todos-keyword-suffix~ defaults to allowing suffixes to be enclosed by parentheses or brackets (rather than just parentheses).
 
 ** 1.7
 
