@@ -127,6 +127,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 ** Tips
 
++  This package is not supposed to be tightly integrated with ~hl-todo-mode~. It uses it's keywords for convinience, but that's it.
 +  Customize settings in the =magit-todos= group.
 +  Use dir-local variables to set per-repository settings.  For example, to exclude files and directories from being scanned for to-dos in a repo:
      1.  From a buffer in the repo's directory (like a ~magit-status~ buffer), run the command ~add-dir-local-variable~.
