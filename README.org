@@ -92,7 +92,7 @@ Then put this file in your =load-path=, and put this in your init file:
 - [[#tips][Tips]]
 :END:
 
-Activate ~magit-todos-mode~.  Then open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
+While in ~magit-todos-mode~ open a Magit status buffer, or run ~magit-todos-list~ to show a dedicated to-do list buffer.
 
 To activate ~magit-todos-mode~ automatically, a recommended configuration for your init file is:
 
