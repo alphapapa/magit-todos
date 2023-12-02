@@ -87,6 +87,7 @@ Then put this file in your =load-path=, and put this in your init file:
 :END:
 
 :CONTENTS:
+- [[#warning][Warning]]
 - [[#key-bindings][Key bindings]]
 - [[#commands][Commands]]
 - [[#tips][Tips]]
@@ -101,6 +102,15 @@ To activate ~magit-todos-mode~ automatically, a recommended configuration for yo
     :after magit
     :config (magit-todos-mode 1))
 #+end_src
+
+** Warning
+This package is not supposed to be tightly integrated with ~hl-todo-mode~!
+It can use `hl-todo` keywords for convinience, but that's it.
+
+For example, note that for ~magit-todos~ to work, *by default* you need to put a colon at the end of the keyword:
+- ~; HACK: I should get rid of this someday~ - will get marked
+- ~; HACK THESE LOCAL VARIABLES!~ - will not
+
 
 ** Key bindings
 
