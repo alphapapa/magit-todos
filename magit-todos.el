@@ -509,8 +509,9 @@ or `default-directory' if nil."
                             (file-name-as-directory (expand-file-name directory))
                           default-directory))
         (magit-todos-list-internal directory))
-    ('magit-outside-git-repo (cl-letf (((symbol-function 'magit-toplevel) (lambda (&rest _) default-directory)))
-                               (call-interactively #'magit-todos-list)))))
+    (magit-outside-git-repo
+     (cl-letf (((symbol-function 'magit-toplevel) (lambda (&rest _) default-directory)))
+       (call-interactively #'magit-todos-list)))))
 
 (put 'magit-todos-list 'interactive-only 'magit-todos-list-internal)
 
