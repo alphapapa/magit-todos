@@ -117,6 +117,11 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 `magit-status' buffer.")
 
+(defvar-local magit-todos-active-git-diff-scan nil
+  "The current scan's process for git diffs.
+Used to avoid running multiple simultaneous scans for a
+`magit-status' buffer.")
+
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "jT" #'magit-todos-jump-to-todos)
@@ -760,16 +765,25 @@ This function should be called from inside a ‘magit-status’ buffer."
                                             :depth magit-todos-depth)))
     (_ ; Caching and cache not expired, or not automatic and not manually updating now
      (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
+  (when magit-todos-active-git-diff-scan
+   ;; Avoid running multiple scans for a single magit-status buffer.
+   (let ((buffer (process-buffer magit-todos-active-git-diff-scan)))
+     (when (process-live-p magit-todos-active-git-diff-scan)
+       (delete-process magit-todos-active-git-diff-scan))
+     (when (buffer-live-p buffer)
+       (kill-buffer buffer)))
+   (setq magit-todos-active-git-diff-scan nil))
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
                  (not (equal (or magit-todos-branch-list-merge-base-ref (magit-main-branch))
                              (magit-get-current-branch)))))
     ;; Insert branch-local items.
-    (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
-                                     :directory default-directory
-                                     :depth magit-todos-depth
-                                     :heading (format "TODOs (branched from %s)"
-                                                      (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))))
+    (setq magit-todos-active-git-diff-scan
+          (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
+                                           :directory default-directory
+                                           :depth magit-todos-depth
+                                           :heading (format "TODOs (branched from %s)"
+                                                            (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))))))
 
 (cl-defun magit-todos--insert-items (magit-status-buffer items &key branch-p)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER.
