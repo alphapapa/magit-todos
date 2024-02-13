@@ -1310,17 +1310,15 @@ When SYNC is non-nil, match items are returned."
                                                  (optional (group-n 6 (regexp ,magit-todos-keyword-suffix)))
                                                  (optional (1+ blank))
                                                  (optional (group-n 5 (1+ not-newline)))))))))
-                (command (-flatten
-                          (-non-nil
-                           (list (when magit-todos-nice
-                                   (list "nice" "-n5"))
-                                 ,command)))))
+                (command (-flatten (-non-nil ,command))))
            ;; Convert any numbers in command to strings (e.g. depth).
            (cl-loop for elt in-ref command
                     when (numberp elt)
                     do (setf elt (number-to-string elt)))
            ;; Run command.
            (when command
+             (when magit-todos-nice
+               (setf command (append (list "nice" "-n5") command)))
              (if sync
                  ;; Synchronous: return matching items.
                  (with-temp-buffer
