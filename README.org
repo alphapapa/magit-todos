@@ -154,6 +154,12 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 + Option ~magit-todos-keyword-suffix~ defaults to allowing suffixes to be enclosed by parentheses or brackets (rather than just parentheses).
 + Minor improvements to warnings about files containing very long lines: display as messages instead of warnings, and signal errors from outside the process sentinel.
 
+** 1.7.1
+
+*Fixes*
++ Don't run branch scanner on a branch without a merge base relative to the main branch.  ([[https://github.com/alphapapa/magit-todos/issues/153][#153]].  Thanks to [[https://github.com/Shinmera][Yukari Hafner]] for reporting.)
++ Keymap parent in status buffer's to-do section.  ([[https://github.com/alphapapa/magit-todos/issues/143][#143]].  Thanks to [[https://github.com/mpaulmier][Matthias Paulmier]].)
+
 ** 1.7
 
 *Changed*
