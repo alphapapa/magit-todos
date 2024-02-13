@@ -141,7 +141,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC: :ignore descendants
 :END:
 
-** 1.7.1-pre
+** 1.7.1
 
 *Fixes*
 + Don't run branch scanner on a branch without a merge base relative to the main branch.  ([[https://github.com/alphapapa/magit-todos/issues/153][#153]].  Thanks to [[https://github.com/Shinmera][Yukari Hafner]] for reporting.)
