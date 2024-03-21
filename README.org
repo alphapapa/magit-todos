@@ -141,7 +141,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :CUSTOM_ID: TRAMP
 :END:
 
-=magit-todos= attempts to work in remote repositories accessed via TRAMP.  Note that if TRAMP can't find the scanner configured in =magit-todos-scanner=, you may need to use directory-local variables to either add the correct path to =tramp-remote-path= or choose a different scanner.
+By default, =magit-todos= attempts to work in remote repositories accessed via TRAMP.  Note that if TRAMP can't find the scanner configured in =magit-todos-scanner=, you may need to use directory-local variables to either add the correct path to =tramp-remote-path= or choose a different scanner.
+
+To disable automatic scanning for to-dos in remote repositories, set the variable ~magit-todos-update-remote~ to nil.
 
 * Changelog
 :PROPERTIES:
