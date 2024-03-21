@@ -119,7 +119,6 @@ Used to avoid running multiple simultaneous scans for a
 
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map magit-status-mode-map)
     (define-key map "b" #'magit-todos-branch-list-toggle)
     (define-key map "B" #'magit-todos-branch-list-set-commit)
     (define-key map [remap magit-visit-thing] #'magit-todos-list)

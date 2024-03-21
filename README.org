@@ -143,7 +143,8 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 ** 1.7.2-pre
 
-Nothing new yet.
+*Fixes*
++ Don't set parent keymap.  ([[https://github.com/alphapapa/magit-todos/issues/173][#173]].  Thanks to [[https://github.com/bcc32][Aaron Zeng]].)
 
 ** 1.7.1
 
