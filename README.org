@@ -141,7 +141,7 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :TOC: :ignore descendants
 :END:
 
-** 1.7.2-pre
+** 1.7.2
 
 *Fixes*
 + Don't set parent keymap.  ([[https://github.com/alphapapa/magit-todos/issues/173][#173]].  Thanks to [[https://github.com/bcc32][Aaron Zeng]].)
