@@ -359,7 +359,8 @@ used."
 
 (defcustom magit-todos-exclude-globs '(".git/")
   "Glob patterns to exclude from searches."
-  :type '(repeat string))
+  :type '(repeat string)
+  :safe #'list-of-strings-p)
 
 (defcustom magit-todos-branch-list 'branch
   "Show branch diff to-do list.
