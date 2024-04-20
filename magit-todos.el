@@ -348,6 +348,7 @@ used."
                  (const :tag "After untracked files" untracked)
                  (const :tag "After unstaged files" unstaged)
                  (symbol :tag "After selected section"))
+  :initialize 'custom-initialize-changed
   :set (lambda (option value)
          ;; For convenience, we set the new option with the appropriate value (but,
          ;; of course, this won't work for users who set it directly with `setq'.)
