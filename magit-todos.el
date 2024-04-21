@@ -335,28 +335,6 @@ as desired when the built-in scanner is used."
                   (const :tag "Issues (Forge)" issues)
                   (symbol :tag "Specified section"))))
 
-(defcustom magit-todos-insert-at 'bottom
-  "Insert the to-dos section after this section in the Magit status buffer.
-Specific sections may be chosen, using the first symbol returned
-by evaluating \"(magit-section-ident (magit-current-section))\"
-in the status buffer with point on the desired section,
-e.g. `recent' for the \"Recent commits\" section.  Note that this
-may not work exactly as desired when the built-in scanner is
-used."
-  :type '(choice (const :tag "Top" top)
-                 (const :tag "Bottom" bottom)
-                 (const :tag "After untracked files" untracked)
-                 (const :tag "After unstaged files" unstaged)
-                 (symbol :tag "After selected section"))
-  :set (lambda (option value)
-         ;; For convenience, we set the new option with the appropriate value (but,
-         ;; of course, this won't work for users who set it directly with `setq'.)
-         ;; TODO: Remove this option in 1.8.
-         (ignore option)
-         (custom-set-variables `(magit-todos-insert-after ',(list value)
-                                                          'now nil "Changed by setter of obsolete option `magit-todos-insert-at'"))))
-(make-obsolete-variable 'magit-todos-insert-at 'magit-todos-insert-after "1.6")
-
 (defcustom magit-todos-exclude-globs '(".git/")
   "Glob patterns to exclude from searches."
   :type '(repeat string))

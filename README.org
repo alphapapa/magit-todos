@@ -154,6 +154,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 + Option ~magit-todos-keyword-suffix~ defaults to allowing suffixes to be enclosed by parentheses or brackets (rather than just parentheses).
 + Minor improvements to warnings about files containing very long lines: display as messages instead of warnings, and signal errors from outside the process sentinel.
 
+*Removals*
++ Obsolete option ~magit-todos-insert-at~, replaced by option ~magit-todos-insert-after~.  (Scheduled for removal since v1.6.)
+
 ** 1.7.2
 
 *Fixes*
