@@ -148,6 +148,9 @@ A time value as returned by `current-time'.")
 (defvar-local magit-todos-item-cache nil
   "Items found by most recent scan.")
 
+(defvar-local magit-todos-branch-item-cache nil
+  "Items found by most recent branch scan.")
+
 (defvar magit-todos-scanners nil
   "Scanners defined by `magit-todos-defscanner'.")
 
@@ -659,6 +662,7 @@ filenames to be excluded."
                       (push item items)))
                   (cl-incf line-number))))))
         (let ((magit-todos-section-heading heading))
+          (setf (buffer-local-value 'magit-todos-branch-item-cache magit-status-buffer) items)
           (magit-todos--insert-items magit-status-buffer items :branch-p t))))))
 
 (defun magit-todos--delete-section (condition)
@@ -734,19 +738,33 @@ This function should be called from inside a ‘magit-status’ buffer."
                                             :callback #'magit-todos--insert-items
                                             :magit-status-buffer (current-buffer)
                                             :directory default-directory
-                                            :depth magit-todos-depth)))
+                                            :depth magit-todos-depth))
+     (magit-todos--maybe-insert-branch-todos 'rescan))
     (_ ; Caching and cache not expired, or not automatic and not manually updating now
-     (magit-todos--insert-items (current-buffer) magit-todos-item-cache)))
+     (magit-todos--insert-items (current-buffer) magit-todos-item-cache)
+     (magit-todos--maybe-insert-branch-todos))))
+
+(defun magit-todos--maybe-insert-branch-todos (&optional forcep)
+  "Insert branch todos when appropriate.
+If FORCEP, force rescan."
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
                  (not (equal (or magit-todos-branch-list-merge-base-ref (magit-main-branch))
                              (magit-get-current-branch)))))
-    ;; Insert branch-local items.
-    (magit-todos--scan-with-git-diff :magit-status-buffer (current-buffer)
-                                     :directory default-directory
-                                     :depth magit-todos-depth
-                                     :heading (format "TODOs (branched from %s)"
-                                                      (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))))
+    (if (or forcep (null magit-todos-branch-item-cache))
+        ;; TODO: Refactor to just return items and then insert separately.
+        (magit-todos--scan-with-git-diff
+         :magit-status-buffer (current-buffer)
+         :directory default-directory
+         :depth magit-todos-depth
+         :heading (format "TODOs (branched from %s)"
+                          (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))
+      ;; Just insert cached items, if any.
+      (when magit-todos-branch-item-cache
+        (let ((magit-todos-section-heading
+               (format "TODOs (branched from %s)"
+                       (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))))
+          (magit-todos--insert-items (current-buffer) magit-todos-branch-item-cache :branch-p t))))))
 
 (cl-defun magit-todos--insert-items (magit-status-buffer items &key branch-p)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER.

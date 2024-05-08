@@ -150,6 +150,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 ** 1.8-pre
 
+*Additions*
++ Branch-specific TODOs are also cached (to avoid rescanning when automatic updates are disabled.  This can improve performance in large repos).
+
 *Changes*
 + Option ~magit-todos-keyword-suffix~ defaults to allowing suffixes to be enclosed by parentheses or brackets (rather than just parentheses).
 + Minor improvements to warnings about files containing very long lines: display as messages instead of warnings, and signal errors from outside the process sentinel.
