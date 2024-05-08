@@ -418,6 +418,7 @@ Only necessary when option `magit-todos-update' is nil."
 (defun magit-todos-branch-list-toggle ()
   "Toggle branch diff to-do list in current Magit buffer."
   (interactive)
+  ;; FIXME: If `magit-todos-branch-list' is not just nil/t, the value is lost.
   (setq-local magit-todos-branch-list (not magit-todos-branch-list))
   (magit-todos-update))
 
