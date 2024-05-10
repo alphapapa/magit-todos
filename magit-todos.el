@@ -742,16 +742,20 @@ This function should be called from inside a ‘magit-status’ buffer."
      (magit-todos--maybe-insert-branch-todos 'rescan))
     (_ ; Caching and cache not expired, or not automatic and not manually updating now
      (magit-todos--insert-items (current-buffer) magit-todos-item-cache)
-     (magit-todos--maybe-insert-branch-todos))))
+     (magit-todos--maybe-insert-branch-todos 'cached))))
 
-(defun magit-todos--maybe-insert-branch-todos (&optional forcep)
+(defun magit-todos--maybe-insert-branch-todos (&optional type)
   "Insert branch todos when appropriate.
-If FORCEP, force rescan."
+If TYPE is `rescan', rescan for items; if `cached', only insert
+cached items, if any; otherwise, use cached items if any, or
+rescan."
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
                  (not (equal (or magit-todos-branch-list-merge-base-ref (magit-main-branch))
                              (magit-get-current-branch)))))
-    (if (or forcep (null magit-todos-branch-item-cache))
+    (if (or (eq 'rescan type)
+            (and (not (eq 'cached type))
+                 (null magit-todos-branch-item-cache)))
         ;; TODO: Refactor to just return items and then insert separately.
         (magit-todos--scan-with-git-diff
          :magit-status-buffer (current-buffer)
@@ -760,11 +764,10 @@ If FORCEP, force rescan."
          :heading (format "TODOs (branched from %s)"
                           (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))
       ;; Just insert cached items, if any.
-      (when magit-todos-branch-item-cache
-        (let ((magit-todos-section-heading
-               (format "TODOs (branched from %s)"
-                       (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))))
-          (magit-todos--insert-items (current-buffer) magit-todos-branch-item-cache :branch-p t))))))
+      (let ((magit-todos-section-heading
+             (format "TODOs (branched from %s)"
+                     (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))))
+        (magit-todos--insert-items (current-buffer) magit-todos-branch-item-cache :branch-p t)))))
 
 (cl-defun magit-todos--insert-items (magit-status-buffer items &key branch-p)
   "Insert to-do ITEMS into MAGIT-STATUS-BUFFER.
