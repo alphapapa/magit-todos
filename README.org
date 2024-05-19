@@ -141,7 +141,9 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 :CUSTOM_ID: TRAMP
 :END:
 
-=magit-todos= attempts to work in remote repositories accessed via TRAMP.  Note that if TRAMP can't find the scanner configured in =magit-todos-scanner=, you may need to use directory-local variables to either add the correct path to =tramp-remote-path= or choose a different scanner.
+Remote repositories (i.e. ones accessed via TRAMP) are not automatically scanned for to-dos unless option ~magit-todos-update-remote~ is enabled.  Otherwise, a scan may be manually initiated with the command ~magit-todos-update~.
+
+Note that if TRAMP can't find the scanner configured in option ~magit-todos-scanner~, you may need to use directory-local variables to either add the correct path to variable ~tramp-remote-path~ or choose a different scanner.
 
 * Changelog
 :PROPERTIES:
@@ -152,8 +154,10 @@ Helm and Ivy are also supported.  Note that the =helm= and =ivy= packages are no
 
 *Additions*
 + Branch-specific TODOs are also cached (to avoid rescanning when automatic updates are disabled.  This can improve performance in large repos).
++ Option ~magit-todos-upate-remote~ allows automatic scanning in remote repositories.  ([[https://github.com/alphapapa/magit-todos/pull/157][#157]].  Thanks to [[https://github.com/projectgus][Angus Gratton]].)
 
 *Changes*
++ Remote repositories are no longer automatically scanned (see new option ~magit-todos-update-remote~).
 + Option ~magit-todos-keyword-suffix~ defaults to allowing suffixes to be enclosed by parentheses or brackets (rather than just parentheses).
 + Minor improvements to warnings about files containing very long lines: display as messages instead of warnings, and signal errors from outside the process sentinel.
 
