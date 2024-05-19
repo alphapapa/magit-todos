@@ -208,7 +208,7 @@ items."
                  (const :tag "Manually" nil)))
 
 (defcustom magit-todos-update-remote nil
- "Automatically scan in remote repositories.
+  "Automatically scan in remote repositories.
 If nil, remote repos are only scanned when a manual scan is
 initiated (see command `magit-todos-update').  Remote repos
 include ones accessed via TRAMP (i.e. any path for which
@@ -720,8 +720,8 @@ Assumes current buffer is ITEM's buffer."
 This function should be called from inside a ‘magit-status’ buffer."
   (declare (indent defun))
   (when (or magit-todos-update-remote
-          magit-todos-updating
-          (not (file-remote-p default-directory)))
+            magit-todos-updating
+            (not (file-remote-p default-directory)))
     ;; Skip automatic scans of remote buffers if magit-todos-update-remote is unset.
     (when magit-todos-active-scan
       ;; Avoid running multiple scans for a single magit-status buffer.
@@ -733,28 +733,28 @@ This function should be called from inside a ‘magit-status’ buffer."
       (setq magit-todos-active-scan nil))
     (pcase magit-todos-update
       ((or 't                           ; Automatic
-         ;; Manual and updating now
-         (and 'nil (guard magit-todos-updating))
-         ;; Caching and cache expired
-         (and (pred integerp) (guard (or magit-todos-updating ; Forced update
-                                       (>= (float-time
-                                             (time-subtract (current-time)
-                                               magit-todos-last-update-time))
-                                         magit-todos-update)
-                                       (null magit-todos-last-update-time)))))
-        ;; Scan and insert.
-        ;; HACK: I don't like setting a special var here, because it seems like lexically binding a
-        ;; special var should follow down the chain, but it isn't working, so we'll do this.
-        (setq magit-todos-updating t)
-        (setq magit-todos-active-scan (funcall magit-todos-scanner
-                                        :callback #'magit-todos--insert-items
-                                        :magit-status-buffer (current-buffer)
-                                        :directory default-directory
-                                        :depth magit-todos-depth))
-        (magit-todos--maybe-insert-branch-todos 'rescan))
+           ;; Manual and updating now
+           (and 'nil (guard magit-todos-updating))
+           ;; Caching and cache expired
+           (and (pred integerp) (guard (or magit-todos-updating ; Forced update
+                                           (>= (float-time
+                                                (time-subtract (current-time)
+                                                               magit-todos-last-update-time))
+                                               magit-todos-update)
+                                           (null magit-todos-last-update-time)))))
+       ;; Scan and insert.
+       ;; HACK: I don't like setting a special var here, because it seems like lexically binding a
+       ;; special var should follow down the chain, but it isn't working, so we'll do this.
+       (setq magit-todos-updating t)
+       (setq magit-todos-active-scan (funcall magit-todos-scanner
+                                              :callback #'magit-todos--insert-items
+                                              :magit-status-buffer (current-buffer)
+                                              :directory default-directory
+                                              :depth magit-todos-depth))
+       (magit-todos--maybe-insert-branch-todos 'rescan))
       (_ ; Caching and cache not expired, or not automatic and not manually updating now
-        (magit-todos--insert-items (current-buffer) magit-todos-item-cache)
-        (magit-todos--maybe-insert-branch-todos 'cached)))))
+       (magit-todos--insert-items (current-buffer) magit-todos-item-cache)
+       (magit-todos--maybe-insert-branch-todos 'cached)))))
 
 (defun magit-todos--maybe-insert-branch-todos (&optional type)
   "Insert branch todos when appropriate.
