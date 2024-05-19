@@ -722,7 +722,6 @@ This function should be called from inside a ‘magit-status’ buffer."
   (when (or magit-todos-update-remote
             magit-todos-updating
             (not (file-remote-p default-directory)))
-    ;; Skip automatic scans of remote buffers if magit-todos-update-remote is unset.
     (when magit-todos-active-scan
       ;; Avoid running multiple scans for a single magit-status buffer.
       (let ((buffer (process-buffer magit-todos-active-scan)))
