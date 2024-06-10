@@ -670,7 +670,8 @@ filenames to be excluded."
                       (push item items)))
                   (cl-incf line-number))))))
         (let ((magit-todos-section-heading heading))
-          (setf (buffer-local-value 'magit-todos-branch-item-cache magit-status-buffer) items)
+          (with-current-buffer magit-status-buffer
+            (setq-local magit-todos-branch-item-cache items))
           (magit-todos--insert-items magit-status-buffer items :branch-p t))))))
 
 (defun magit-todos--delete-section (condition)
