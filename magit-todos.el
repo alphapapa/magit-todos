@@ -1419,7 +1419,7 @@ When SYNC is non-nil, match items are returned."
                                        shell-command-to-string
                                        string-trim)))
                (unless (string-empty-p merge-base-ref)
-                 (list "git" "--no-pager" "diff" "--no-color" "-U0" merge-base-ref))))
+                 (list "git" "--no-pager" "diff" "--no-color" "-U0" "--no-ext-diff" merge-base-ref))))
   :callback 'magit-todos--git-diff-callback)
 
 (magit-todos-defscanner "find|grep"
