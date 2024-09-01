@@ -1389,7 +1389,16 @@ When SYNC is non-nil, match items are returned."
                  extra-args search-regexp-pcre directory))
 
 (magit-todos-defscanner "git grep"
-  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --magit-todos-testing-git-grep"))
+  ;; This test is evaluated at Emacs start! To allow the git grep :test to work
+  ;; regardless of whether or not Emacs was started inside of a Git repository,
+  ;; we use --no-index and - (STDIN). --no-index makes "git grep" behave like
+  ;; "grep -r". We then use - as the input (STDIN) so that we do not rely on
+  ;; specifying any actual files.
+  :test (not (string-match "fatal" (shell-command-to-string "git grep --no-index --quiet --perl-regexp '\\d' -- -")))
+  ;; git-grep exits this test with 128 if PCRE is not supported. We also allow
+  ;; exit code 1, because it means a successful grep run (--perl-regexp IS
+  ;; supported), but there are no matches.
+  :test (>= 1 (call-process-shell-command "git grep --no-index --quiet --perl-regexp '\\d' -- -"))
   :allow-exit-codes (0 1)
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
