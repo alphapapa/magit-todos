@@ -1389,7 +1389,13 @@ When SYNC is non-nil, match items are returned."
                  extra-args search-regexp-pcre directory))
 
 (magit-todos-defscanner "git grep"
-  :test (string-match "--perl-regexp" (shell-command-to-string "git grep --magit-todos-testing-git-grep"))
+  ;; To allow git-grep to work regardless of whether `default-directory'
+  ;; is in a Git repository, we use "--no-index" (which acts like "grep
+  ;; -r") and "-" (STDIN, so we needn't specify files).  git-grep exits
+  ;; this test with 128 if PCRE is not supported.  We also allow exit
+  ;; code 1, because it means a successful grep run (i.e. "--perl-regexp"
+  ;; is supported) without matches.
+  :test (>= 1 (call-process-shell-command "git grep --no-index --quiet --perl-regexp '\\d' -- -"))
   :allow-exit-codes (0 1)
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
