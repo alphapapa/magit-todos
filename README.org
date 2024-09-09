@@ -165,7 +165,10 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 + Obsolete option ~magit-todos-insert-at~, replaced by option ~magit-todos-insert-after~.  (Scheduled for removal since v1.6.)
 
 *Fixes*
-+ Disable external diff drivers when calling ~git diff~.  ([[https://github.com/alphapapa/magit-todos/pull/174][#174]].  Thanks to [[https://github.com/bcc32][Aaron Zeng]].) 
++ Disable external diff drivers when calling ~git diff~.  ([[https://github.com/alphapapa/magit-todos/pull/174][#174]].  Thanks to [[https://github.com/bcc32][Aaron Zeng]].)
+
+*Compatibility*
++ Update test for ~git-grep~ scanner compatibility for newer versions of Git.  (See [[https://github.com/alphapapa/magit-todos/issues/186][#186]].  Thanks to [[https://github.com/KarlJoad][Karl Hallsby]].)
 
 ** 1.7.2
 
