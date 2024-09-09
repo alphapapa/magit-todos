@@ -594,9 +594,8 @@ To be called in status buffers' `kill-buffer-hook'."
   "Return function to call to scan for items with.
 Chooses automatically in order defined in `magit-todos-scanners'."
   (cl-loop for scanner in magit-todos-scanners
-           ;; I guess it would be better to avoid `eval', but it seems like the natural
-           ;; way to do this.
-           when (eval (alist-get 'test scanner))
+           for availablep = (alist-get 'availablep scanner)
+           when (and availablep (funcall availablep))
            return (alist-get 'function scanner)))
 
 (cl-defun magit-todos--scan-callback (&key callback magit-status-buffer results-regexp process &allow-other-keys)
@@ -1163,7 +1162,7 @@ if the process's buffer has already been deleted."
 
 ;;;; Scanners
 
-(cl-defmacro magit-todos-defscanner (name &key test command results-regexp
+(cl-defmacro magit-todos-defscanner (name &key availablep command results-regexp
                                           (allow-exit-codes '(0))
                                           (directory-form '(f-relative directory default-directory))
                                           (callback (function 'magit-todos--scan-callback)))
@@ -1172,7 +1171,7 @@ if the process's buffer has already been deleted."
 NAME is a string, which may contain spaces.  It is only used for
 descriptive purposes.
 
-TEST is an unquoted sexp which is used to determine whether the
+AVAILABLEP is a predicate which is used to determine whether the
 scanner is usable.  In most cases, it should use
 `executable-find' to look for the scanner command.
 
@@ -1356,7 +1355,7 @@ When SYNC is non-nil, match items are returned."
        (add-to-list 'magit-todos-scanners
                     (list (cons 'name ,name)
                           (cons 'function #',scan-fn-symbol)
-                          (cons 'test ',test))
+                          (cons 'availablep ,availablep))
                     'append))))
 
 ;; NOTE: These scanners handle the max-depth option differently.  git-grep seems to handle it in the
@@ -1369,7 +1368,8 @@ When SYNC is non-nil, match items are returned."
 ;; scanners we'll add one to its value.
 
 (magit-todos-defscanner "rg"
-  :test (executable-find "rg")
+  :availablep (lambda ()
+                (executable-find "rg"))
   :directory-form (if (equal directory default-directory)
                       ;; Prevent leading "./" in filenames.
                       nil
@@ -1395,7 +1395,8 @@ When SYNC is non-nil, match items are returned."
   ;; this test with 128 if PCRE is not supported.  We also allow exit
   ;; code 1, because it means a successful grep run (i.e. "--perl-regexp"
   ;; is supported) without matches.
-  :test (>= 1 (call-process-shell-command "git grep --no-index --quiet --perl-regexp '\\d' -- -"))
+  :availablep (lambda ()
+                (>= 1 (call-process-shell-command "git grep --no-index --quiet --perl-regexp '\\d' -- -")))
   :allow-exit-codes (0 1)
   :command (list "git" "--no-pager" "grep"
                  "--full-name" "--no-color" "-n"
@@ -1416,7 +1417,6 @@ When SYNC is non-nil, match items are returned."
 (magit-todos-defscanner "git diff"
   ;; NOTE: This scanner implements the regexp *searching* in elisp rather than in the
   ;; external process because, unlike "git grep", "git diff" does not support PCRE.
-  :test t
   :command (progn
              ;; Silence byte-compiler warnings about these vars we don't use in this scanner.
              (ignore search-regexp-elisp search-regexp-pcre extra-args directory depth)
@@ -1431,7 +1431,8 @@ When SYNC is non-nil, match items are returned."
 (magit-todos-defscanner "find|grep"
   ;; NOTE: The filenames output by find|grep have a leading "./".  I don't expect this scanner to be
   ;; used much, if at all, so I'm not going to go to the trouble to fix this now.
-  :test (string-match "--perl-regexp" (shell-command-to-string "grep --help"))
+  :availablep (lambda ()
+                (string-match "--perl-regexp" (shell-command-to-string "grep --help")))
   :allow-exit-codes (0 1)
   :command (let* ((grep-find-template (progn
                                         (unless grep-find-template
