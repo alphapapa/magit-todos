@@ -147,6 +147,9 @@ Remote repositories (i.e. ones accessed via TRAMP) are not automatically scanned
 Note that if TRAMP can't find the scanner configured in option ~magit-todos-scanner~, you may need to use directory-local variables to either add the correct path to variable ~tramp-remote-path~ or choose a different scanner.
 
 * FAQ
+:PROPERTIES:
+:ID:       3b86994f-d3da-4f55-865d-4212bcbcaeaa
+:END:
 
 ** Why aren't my to-do items shown in the list?
 
@@ -178,6 +181,9 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 
 *Compatibility*
 + Update test for ~git-grep~ scanner compatibility for newer versions of Git.  (See [[https://github.com/alphapapa/magit-todos/issues/186][#186]].  Thanks to [[https://github.com/KarlJoad][Karl Hallsby]].)
+
+*Documentation*
++ Added [[id:3b86994f-d3da-4f55-865d-4212bcbcaeaa][FAQ]] section.
 
 ** 1.7.2
 
