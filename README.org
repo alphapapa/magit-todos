@@ -161,7 +161,7 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 :TOC: :ignore descendants
 :END:
 
-** 1.8-pre
+** 1.8
 
 *Additions*
 + Branch-specific TODOs are also cached (to avoid rescanning when automatic updates are disabled.  This can improve performance in large repos).
