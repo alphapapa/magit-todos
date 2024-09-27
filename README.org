@@ -161,6 +161,10 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 :TOC: :ignore descendants
 :END:
 
+** 1.9-pre
+
+Nothing new yet.
+
 ** 1.8
 
 *Additions*
