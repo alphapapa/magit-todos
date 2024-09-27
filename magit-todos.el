@@ -117,6 +117,11 @@ This should be set automatically by customizing
 Used to avoid running multiple simultaneous scans for a
 `magit-status' buffer.")
 
+(defvar-local magit-todos-active-git-diff-scan nil
+  "The current scan's process for git diffs.
+Used to avoid running multiple simultaneous scans for a
+`magit-status' buffer.")
+
 (defvar magit-todos-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "b" #'magit-todos-branch-list-toggle)
@@ -759,6 +764,14 @@ This function should be called from inside a ‘magit-status’ buffer."
 If TYPE is `rescan', rescan for items; if `cached', only insert
 cached items, if any; otherwise, use cached items if any, or
 rescan."
+  (when magit-todos-active-git-diff-scan
+    ;; Avoid running multiple scans for a single magit-status buffer.
+    (let ((buffer (process-buffer magit-todos-active-git-diff-scan)))
+      (when (process-live-p magit-todos-active-git-diff-scan)
+        (delete-process magit-todos-active-git-diff-scan))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))
+    (setq magit-todos-active-git-diff-scan nil))
   (when (or (eq magit-todos-branch-list t)
             (and (eq magit-todos-branch-list 'branch)
                  (not (equal (or magit-todos-branch-list-merge-base-ref (magit-main-branch))
@@ -767,12 +780,13 @@ rescan."
             (and (not (eq 'cached type))
                  (null magit-todos-branch-item-cache)))
         ;; TODO: Refactor to just return items and then insert separately.
-        (magit-todos--scan-with-git-diff
-         :magit-status-buffer (current-buffer)
-         :directory default-directory
-         :depth magit-todos-depth
-         :heading (format "TODOs (branched from %s)"
-                          (or magit-todos-branch-list-merge-base-ref (magit-main-branch))))
+        (setq magit-todos-active-git-diff-scan
+              (magit-todos--scan-with-git-diff
+               :magit-status-buffer (current-buffer)
+               :directory default-directory
+               :depth magit-todos-depth
+               :heading (format "TODOs (branched from %s)"
+                                (or magit-todos-branch-list-merge-base-ref (magit-main-branch)))))
       ;; Just insert cached items, if any.
       (let ((magit-todos-section-heading
              (format "TODOs (branched from %s)"

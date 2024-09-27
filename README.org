@@ -163,7 +163,9 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 
 ** 1.9-pre
 
-Nothing new yet.
+*Fixes*
+
++ Don't run simultaneous branch-diff scans on the same repo. ([[https://github.com/alphapapa/magit-todos/issues/145][#145]].  Thanks to [[https://github.com/mpaulmier][Matthias Paulmier]].) 
 
 ** 1.8
 
