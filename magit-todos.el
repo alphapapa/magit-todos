@@ -1293,11 +1293,10 @@ When SYNC is non-nil, match items are returned."
                                              (1+ space)
                                              (group (1+ not-newline)))
                                         ;; Non-Org
-                                        (seq (or bol (1+ blank))
+                                        (seq (or (seq word word-boundary) (not word) line-start)
                                              (group (or ,@keywords))
                                              (regexp ,magit-todos-keyword-suffix)
-                                             (optional (1+ blank)
-                                                       (group (1+ not-newline)))))))
+                                             (or (seq word-boundary word) (not word) line-end)))))
                 (search-regexp-pcre (rxt-elisp-to-pcre search-regexp-elisp))
                 (results-regexp (or ,results-regexp
                                     (rx-to-string
