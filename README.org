@@ -161,7 +161,7 @@ Note that if TRAMP can't find the scanner configured in option ~magit-todos-scan
 :TOC: :ignore descendants
 :END:
 
-** 1.8.1-pre
+** 1.8.1
 
 *Compatibility*
 + Font locking with newer versions of ~magit-section~.  ([[https://github.com/alphapapa/magit-todos/issues/201][#201]], [[https://github.com/alphapapa/magit-todos/pull/203][#203]].  Thanks to [[https://github.com/mohkale][Mohsin Kaleem]].)
