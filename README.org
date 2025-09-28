@@ -174,7 +174,7 @@ Nothing new yet.
 
 *Additions*
 + Branch-specific TODOs are also cached (to avoid rescanning when automatic updates are disabled.  This can improve performance in large repos).
-+ Option ~magit-todos-upate-remote~ allows automatic scanning in remote repositories.  ([[https://github.com/alphapapa/magit-todos/pull/157][#157]].  Thanks to [[https://github.com/projectgus][Angus Gratton]].)
++ Option ~magit-todos-update-remote~ allows automatic scanning in remote repositories.  ([[https://github.com/alphapapa/magit-todos/pull/157][#157]].  Thanks to [[https://github.com/projectgus][Angus Gratton]].)
 
 *Changes*
 + Remote repositories are no longer automatically scanned (see new option ~magit-todos-update-remote~).
