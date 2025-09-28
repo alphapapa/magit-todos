@@ -832,11 +832,15 @@ If BRANCH-P is non-nil, do not update `magit-todos-item-cache',
                   ;; Manual updates: Insert section to remind user
                   (let ((magit-insert-section--parent magit-root-section))
                     (magit-insert-section (todos)
-                      (magit-insert-heading (concat (propertize magit-todos-section-heading 'face 'magit-section-heading)
+                      (magit-insert-heading (concat (propertize magit-todos-section-heading
+                                                                'face 'magit-section-heading
+                                                                'font-lock-face 'magit-section-heading)
                                                     " (0)" reminder "\n")))))
               (let ((section (magit-todos--insert-groups :type 'todos
                                :heading (format "%s (%s)%s"
-                                                (propertize magit-todos-section-heading 'face 'magit-section-heading)
+                                                (propertize magit-todos-section-heading
+                                                            'face 'magit-section-heading
+                                                            'font-lock-face 'magit-section-heading)
                                                 num-items reminder)
                                :group-fns group-fns
                                :items items
@@ -863,7 +867,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil 'font-lock-face nil))
          (heading (concat indent heading))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
@@ -896,7 +900,8 @@ sections."
                                         :heading (concat
                                                   (if (and magit-todos-fontify-keyword-headers
                                                            (member group-name magit-todos-keywords-list))
-                                                      (propertize group-name 'face (magit-todos--keyword-face group-name))
+                                                      (let ((face (magit-todos--keyword-face group-name)))
+                                                        (propertize group-name 'face face 'font-lock-face face))
                                                     group-name)
                                                   ;; Item count
                                                   (if (= 1 (length group-fns))
@@ -929,7 +934,7 @@ sections."
   ;; NOTE: `magit-insert-section' seems to bind `magit-section-visibility-cache' to nil, so setting
   ;; visibility within calls to it probably won't work as intended.
   (declare (indent defun))
-  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil))
+  (let* ((indent (propertize (s-repeat (* 2 depth) " ") 'face nil 'font-lock-face nil))
          (magit-insert-section--parent (if (= 0 depth)
                                            magit-root-section
                                          magit-insert-section--parent))
@@ -937,7 +942,9 @@ sections."
          (section (magit-insert-section ((eval type))
                     (magit-insert-heading heading)
                     (dolist (item items)
-                      (let* ((filename (propertize (magit-todos-item-filename item) 'face 'magit-filename))
+                      (let* ((filename (propertize (magit-todos-item-filename item)
+                                                   'face 'magit-filename
+                                                   'font-lock-face 'magit-filename))
                              (string (--> (concat indent
                                                   (when magit-todos-show-filenames
                                                     (when magit-todos-filename-filter
@@ -1114,11 +1121,12 @@ if the process's buffer has already been deleted."
 
 (defun magit-todos--format-plain (item)
   "Return ITEM formatted as from a non-Org file."
-  (format "%s%s %s"
-          (propertize (magit-todos-item-keyword item)
-                      'face (magit-todos--keyword-face (magit-todos-item-keyword item)))
-          (or (magit-todos-item-suffix item) "")
-          (or (magit-todos-item-description item) "")))
+  (let ((face (magit-todos--keyword-face (magit-todos-item-keyword item))))
+    (format "%s%s %s"
+            (propertize (magit-todos-item-keyword item)
+                        'face face 'font-lock-face face)
+            (or (magit-todos-item-suffix item) "")
+            (or (magit-todos-item-description item) ""))))
 
 (defun magit-todos--format-org (item)
   "Return ITEM formatted as from an Org file."
