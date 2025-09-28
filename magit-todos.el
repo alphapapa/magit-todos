@@ -900,9 +900,8 @@ sections."
                                         :heading (concat
                                                   (if (and magit-todos-fontify-keyword-headers
                                                            (member group-name magit-todos-keywords-list))
-                                                      (propertize group-name
-                                                                  'face (magit-todos--keyword-face group-name)
-                                                                  'font-lock-face (magit-todos--keyword-face group-name))
+                                                      (let ((face (magit-todos--keyword-face group-name)))
+                                                        (propertize group-name 'face face 'font-lock-face face))
                                                     group-name)
                                                   ;; Item count
                                                   (if (= 1 (length group-fns))
@@ -1122,12 +1121,12 @@ if the process's buffer has already been deleted."
 
 (defun magit-todos--format-plain (item)
   "Return ITEM formatted as from a non-Org file."
-  (format "%s%s %s"
-          (propertize (magit-todos-item-keyword item)
-                      'face (magit-todos--keyword-face (magit-todos-item-keyword item))
-                      'font-lock-face (magit-todos--keyword-face (magit-todos-item-keyword item)))
-          (or (magit-todos-item-suffix item) "")
-          (or (magit-todos-item-description item) "")))
+  (let ((face (magit-todos--keyword-face (magit-todos-item-keyword item))))
+    (format "%s%s %s"
+            (propertize (magit-todos-item-keyword item)
+                        'face face 'font-lock-face face)
+            (or (magit-todos-item-suffix item) "")
+            (or (magit-todos-item-description item) ""))))
 
 (defun magit-todos--format-org (item)
   "Return ITEM formatted as from an Org file."
